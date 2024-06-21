@@ -12,8 +12,7 @@
 **Another Weird New Chess Algorithm**  
 - no recursive min-max/alpha-beta tree search through future moves+chessboards at all,  
 - move decisions are solely based on data explored and deducted on the current board  
-- while the neighbouring project [TideEval"](https://github.com/chrinspire/TideEval) 
-<img src="https://github.com/chrinspire/TideEval/tree/master/assets/TideEval_Logo_dark.png" width="50"/>
+- while the neighbouring project [TideEval](https://github.com/chrinspire/TideEval) 
 uses mostly rule based pattern recognition of situations on the board, Waves focuses on current moves and their relations.
 
 
