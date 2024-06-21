@@ -1,0 +1,181 @@
+/*
+ *     TideEval - Wired New Chess Algorithm
+ *     Copyright (C) 2023 Christian Ensel
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ *     You should have received a copy of the GNU General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package de.ensel.waves;
+
+import java.util.*;
+
+import static de.ensel.chessbasics.ChessBasics.*;
+import static de.ensel.waves.ChessBoard.NO_PIECE_ID;
+
+public class Square {
+    final ChessBoard board;
+    private final int myPos; // mainly for debugging and output
+    private int myPieceID;  // the ID of the ChessPiece sitting directly on this square - if any, otherwise NO_PIECE_ID
+
+    private int clashEvalResult = 0;
+    boolean[] blocksCheckFor = new boolean[2];  // tells if a piece here can block a check here (for king with colorindex) by taking a checker of moving in the way
+
+    //// Constructors
+
+    Square(ChessBoard myChessBoard, int myPos) {
+        this.board = myChessBoard;
+        this.myPos = myPos;
+        this.myPieceID = NO_PIECE_ID;
+    }
+
+
+    //// simple infp
+
+    String getCoverageInfoByColorForLevel(final boolean color, final int level) {
+        StringBuilder s = new StringBuilder(20);
+        s.append(level).append(": -");
+        return s.toString();
+    }
+
+    public int countDirectAttacksWithout2ndRowWithColor(int col) {
+        return 0; //TODO
+    }
+
+    public List<ChessPiece> directAttackersWithout2ndRowWithColor(int col) {
+        return null; //TODO
+    }
+
+    public boolean isEmpty() {
+        return myPieceID() == NO_PIECE_ID;
+    }
+
+    int myPieceType() {
+        if (isEmpty())
+            return EMPTY;
+        return myPiece().pieceType();
+    }
+
+    public ChessPiece myPiece() {
+        if (myPieceID()==NO_PIECE_ID)
+            return null;
+        return board.getPiece(myPieceID());
+    }
+
+    public boolean walkable4king(final int kingColor) {
+        int acol = opponentColorIndex(kingColor);
+        return true; //TODO
+//        return (!extraCoverageOfKingPinnedPiece(acol))
+//                && countDirectAttacksWithout2ndRowWithColor(acol) == 0  // no really direct attacks
+//                && ( countDirectAttacksWithColor(acol) == 0
+//                || (countDirectAttacksWithColor(acol) == 1    // no x-ray through king
+//                && coverageOfColorPerHops.get(1).get(colorIndex(acol)).get(0).getRawMinDistanceFromPiece()
+//                .doesNotHaveThisSingleFromToAnywhereCondition(board.getKingPos(kingColor)) ) );
+    }
+
+
+    //// Overrides
+    @Override
+    public String toString() {
+        return squareName(myPos);
+    }
+
+    public String toStringWithPce() {
+        return squareName(myPos) + (isEmpty() ? "" : "(" + fenCharFromPceType(myPieceID()) + ")");
+    }
+
+
+    //// infos
+
+    public boolean hasPieceOfColor(int color) {
+        return board.hasPieceOfColorAt(color, pos());
+    }
+
+
+    //// getter
+
+    /** getter for myPos, i.e. the position of this square
+     * @return position of this square
+     */
+    int pos() {
+        return myPos;
+    }
+
+    /**
+     *
+     * @return the ID of the ChessPiece sitting directly on this square - if any, otherwise NO_PIECE_ID
+     */
+    int myPieceID() {
+        return myPieceID;
+    }
+
+    public boolean blocksCheckFor(int color) {
+        return blocksCheckFor[color];
+    }
+
+    public int clashEval() {
+        return clashEvalResult;
+    }
+
+
+    //// setter
+
+    public void resetBlocksChecks() {
+        blocksCheckFor[0] = false;
+        blocksCheckFor[1] = false;
+    }
+
+    public void setBlocksCheckFor(int color) {
+        blocksCheckFor[color] = true;
+    }
+
+    public boolean canMoveHere(int pceID) {
+        return true; //TODO
+    }
+
+    void prepareNewPiece(int newPceID) {
+        ; // TODO
+    }
+
+    void spawnPiece(int pid) {
+        //the Piece had not existed so far, so prefill the move-net
+        myPieceID = pid;
+        // TODO
+    }
+
+    void movePieceHereFrom(int pid, int frompos) {
+        //a new or existing Piece must correct its move-net
+        if (myPieceID != NO_PIECE_ID) {
+            // this piece is beaten...
+            board.removePiece(myPieceID);
+        }
+        myPieceID = pid;
+    }
+
+    public void removePiece(int pceID) {
+        myPieceID = NO_PIECE_ID;
+        ; // TODO
+    }
+
+    void emptySquare() {
+        /*VirtualPieceOnSquare vPce = getvPiece(myPieceID);
+        if (vPce!=null)
+            vPce.resetDistances();*/
+        myPieceID = NO_PIECE_ID;
+    }
+
+    public int getDistanceToPieceId(int squareFromPceId) {
+        return 0;
+    }
+
+}
