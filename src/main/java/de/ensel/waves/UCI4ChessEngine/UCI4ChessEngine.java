@@ -16,9 +16,8 @@
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package de.ensel.waves.UCI4ChessEngine.UCI4ChessEngine;
+package de.ensel.waves.UCI4ChessEngine;
 
-import de.ensel.chessgui.ChessEngine;
 import de.ensel.waves.ChessBoard;
 import de.ensel.waves.ChessBoardController;
 

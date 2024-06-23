@@ -18,7 +18,7 @@
 
 package de.ensel.waves;
 
-import de.ensel.chessgui.ChessEngine;
+import de.ensel.waves.UCI4ChessEngine.ChessEngine;
 
 import java.util.HashMap;
 import java.util.Iterator;
