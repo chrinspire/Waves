@@ -1,6 +1,6 @@
 /*
- *     TideEval - Wired New Chess Algorithm
- *     Copyright (C) 2023 Christian Ensel
+ *     Waves - Another Wired New Chess Algorithm
+ *     Copyright (C) 2024 Christian Ensel
  *
  *     This program is free software: you can redistribute it and/or modify
  *     it under the terms of the GNU General Public License as published by
@@ -70,8 +70,8 @@ public class UCI4ChessEngine {
             +RE_ONEORMORE_BLANKS+"([0-9]+)"
             +RE_BLANKS_ORNOTHING+")";
 
+    static String name = "Waves " + ChessBoard.chessBoardRes.getString("version");
 
-    static String name = "TideEval 0.48h87a";
 
     public static void main(String[] args) throws Exception {
         System.out.println("Welcome to " + name + " by Christian Ensel");  // + uci4ce.engine.getBoard());

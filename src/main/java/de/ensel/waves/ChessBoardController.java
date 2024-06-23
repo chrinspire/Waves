@@ -1,6 +1,6 @@
 /*
- *     TideEval - Wired New Chess Algorithm
- *     Copyright (C) 2023 Christian Ensel
+ *     Waves - Another Wired New Chess Algorithm
+ *     Copyright (C) 2024 Christian Ensel
  *
  *     This program is free software: you can redistribute it and/or modify
  *     it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ public class ChessBoardController implements ChessEngine {
     @Override
     public void setBoard(String fen) {
         if (board==null) {
-            board = new ChessBoard(chessBasicRes.getString("chessboard.initialName"), fen);
+            board = new ChessBoard(ChessBoard.chessBoardRes.getString("chessboard.initialName"), fen);
         }
         else {
             if (!board.updateBoardFromFEN(fen) && !fen.equals(FENPOS_STARTPOS)) {

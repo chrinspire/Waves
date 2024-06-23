@@ -1,6 +1,6 @@
 /*
- *     TideEval - Wired New Chess Algorithm
- *     Copyright (C) 2023 Christian Ensel
+ *     Waves - Another Wired New Chess Algorithm
+ *     Copyright (C) 2024 Christian Ensel
  *
  *     This program is free software: you can redistribute it and/or modify
  *     it under the terms of the GNU General Public License as published by
