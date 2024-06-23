@@ -34,6 +34,12 @@ class ChessPieceTest {
         int pcePos = coordinateString2Pos("b7");
         int pce2Pos = coordinateString2Pos("e4");
         int pce3Pos = coordinateString2Pos("c6");
+        // 8 ░░░   ░░░   ░░░   ░░░
+        // 7    ░X░   ░░░   ░░░   ░░░   p1: rotated between B, b, Q and q
+        // 6 ░░░   ░b+   ░░░   ░░░      p3: b or B in opposite color of p1
+        // 5    ░░░   ░░+   ░░░   ░░░
+        // 4 ░░░   ░░░   ░X+   ░░░      p2: same as p1 - to have own piece standing in the way
+        //... A  B  C  D  E  F  G  H
 
         for (int pceType : new int[]{BISHOP, BISHOP_BLACK, QUEEN, QUEEN_BLACK}) {
             ChessBoard board = new ChessBoard(FENPOS_EMPTY);
@@ -57,7 +63,15 @@ class ChessPieceTest {
         int pcePos = coordinateString2Pos("b7");
         int pce2Pos = coordinateString2Pos("e4");
         int pce3Pos = coordinateString2Pos("c6");
-
+        // 8 ░░░   ░░░  -░░░   ░░░
+        // 7    ░X░   -░░   ░░░   ░░░   p1: rotated between B, b, Q and q
+        // 6 ░░░-  ░b░   ░░░   ░░░      p3: switched between b and B in opposite color of p1
+        // 5    ░░░   ░░-   ░░░   ░░░
+        // 4 ░░░   ░░░   ░X-   ░░░      p2: same as p1 - to have own piece standing in the way
+        // 3    ░░░   ░░░   ░░-   ░░░
+        // 2 ░░-   ░░░   ░░░   ░░░
+        // 1    ░░░   ░░░   ░░░   ░░░
+        //    A  B  C  D  E  F  G  H
         for (int pceType : new int[]{BISHOP, BISHOP_BLACK, QUEEN, QUEEN_BLACK}) {
             ChessBoard board = new ChessBoard(FENPOS_EMPTY);
             int opponentPceType = (isPieceTypeWhite(pceType) ? BISHOP_BLACK : BISHOP);
@@ -83,7 +97,12 @@ class ChessPieceTest {
     void getMoveEvaluation_Test() {
         int pcePos = coordinateString2Pos("b7");
         int pce2Pos = coordinateString2Pos("e4");
-        int pce3Pos = coordinateString2Pos("c6");
+        // 8 ░░░   ░░░   ░░░   ░░░
+        // 7    ░X░   ░░░   ░░░   ░░░   p1: rotated between B, b, Q and q
+        // 6 ░░░   ░░░   ░░░   ░░░
+        // 5    ░░░   ░░░   ░░░   ░░░
+        // 4 ░░░   ░░░   ░b░   ░░░      p2: switched between b and B in opposite color of p1
+        //... A  B  C  D  E  F  G  H
 
         for (int pceType : new int[]{BISHOP, BISHOP_BLACK, QUEEN, QUEEN_BLACK}) {
             ChessBoard board = new ChessBoard(FENPOS_EMPTY);
