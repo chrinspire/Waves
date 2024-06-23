@@ -191,7 +191,7 @@ public class ChessBoard {
         int kingPos = getKingPos(color);
         if (kingPos < 0)
             return 0;  // king does not exist... should not happen, but is part of some test-positions
-        Square kingSquare = getBoardSquare(kingPos);
+        Square kingSquare = getSquare(kingPos);
         return kingSquare.countDirectAttacksWithout2ndRowWithColor(opponentColorIndex(color));
     }
 
@@ -323,7 +323,7 @@ public class ChessBoard {
             int kingpos = getKingPos(color);
             if (kingpos < 0)
                 continue;          // in some test-cases boards without kings are used, so skip this (instead of error/abort)
-            List<ChessPiece> attackers = getBoardSquare(kingpos).directAttackersWithout2ndRowWithColor(opponentColorIndex(color));
+            List<ChessPiece> attackers = getSquare(kingpos).directAttackersWithout2ndRowWithColor(opponentColorIndex(color));
             for (ChessPiece a : attackers) {
                 for (int pos : a.allPosOnWayTo(kingpos))
                     boardSquares[pos].setBlocksCheckFor(color);
@@ -844,7 +844,7 @@ public class ChessBoard {
                     topos = CASTLING_KINGSIDE_ROOKTARGET[CIBLACK];
                 }
                 else {
-                    basicMoveFromTo(ROOK_BLACK, getBoardSquare(topos).myPieceID(), topos, CASTLING_KINGSIDE_ROOKTARGET[CIBLACK]);
+                    basicMoveFromTo(ROOK_BLACK, getSquare(topos).myPieceID(), topos, CASTLING_KINGSIDE_ROOKTARGET[CIBLACK]);
                     //target position is always the same, even for chess960 - touches rook first, but nobody knows ;-)
                     topos = CASTLING_KINGSIDE_KINGTARGET[CIBLACK];
                 }
@@ -854,11 +854,11 @@ public class ChessBoard {
                     && ( toposType == ROOK_BLACK || topos == frompos-2 )
                     && allSquaresEmptyFromTo(frompos,topos)
                     && ( isSquareEmpty(CASTLING_QUEENSIDE_KINGTARGET[CIBLACK])
-                    || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIBLACK]).myPieceType()==KING_BLACK
-                    || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIBLACK]).myPieceType()==ROOK_BLACK )
+                    || getSquare(CASTLING_QUEENSIDE_KINGTARGET[CIBLACK]).myPieceType()==KING_BLACK
+                    || getSquare(CASTLING_QUEENSIDE_KINGTARGET[CIBLACK]).myPieceType()==ROOK_BLACK )
                     && ( isSquareEmpty(CASTLING_QUEENSIDE_ROOKTARGET[CIBLACK])
-                    || getBoardSquare(CASTLING_QUEENSIDE_ROOKTARGET[CIBLACK]).myPieceType()==KING_BLACK
-                    || getBoardSquare(CASTLING_QUEENSIDE_ROOKTARGET[CIBLACK]).myPieceType()==ROOK_BLACK )
+                    || getSquare(CASTLING_QUEENSIDE_ROOKTARGET[CIBLACK]).myPieceType()==KING_BLACK
+                    || getSquare(CASTLING_QUEENSIDE_ROOKTARGET[CIBLACK]).myPieceType()==ROOK_BLACK )
             ) {
                 if (toposPceID == NO_PIECE_ID && topos == frompos - 2)  // seems to be std-chess notation (king moves 2 aside)
                     topos = findRook(coordinateString2Pos("a8"), frompos - 1);
@@ -869,7 +869,7 @@ public class ChessBoard {
                     topos = CASTLING_QUEENSIDE_ROOKTARGET[CIBLACK];
                 }
                 else {
-                    basicMoveFromTo(ROOK_BLACK, getBoardSquare(topos).myPieceID(), topos, CASTLING_QUEENSIDE_ROOKTARGET[CIBLACK]);
+                    basicMoveFromTo(ROOK_BLACK, getSquare(topos).myPieceID(), topos, CASTLING_QUEENSIDE_ROOKTARGET[CIBLACK]);
                     //target position is always the same, even for chess960 - touches rook first, but nobody knows ;-)
                     topos = CASTLING_QUEENSIDE_KINGTARGET[CIBLACK];
                 }
@@ -891,7 +891,7 @@ public class ChessBoard {
                     frompos = NOWHERE;
                     topos = CASTLING_KINGSIDE_ROOKTARGET[CIWHITE];
                 } else {
-                    basicMoveFromTo(ROOK, getBoardSquare(topos).myPieceID(), topos, CASTLING_KINGSIDE_ROOKTARGET[CIWHITE]);
+                    basicMoveFromTo(ROOK, getSquare(topos).myPieceID(), topos, CASTLING_KINGSIDE_ROOKTARGET[CIWHITE]);
                     //target position is always the same, even for chess960 - touches rook first, but nobody knows ;-)
                     topos = CASTLING_KINGSIDE_KINGTARGET[CIWHITE];
                 }
@@ -901,11 +901,11 @@ public class ChessBoard {
                     && ( toposType == ROOK || topos == frompos-2 )
                     && allSquaresEmptyFromTo(frompos,topos)
                     && ( isSquareEmpty(CASTLING_QUEENSIDE_KINGTARGET[CIWHITE])
-                         || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIWHITE]).myPieceType()==KING
-                         || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIWHITE]).myPieceType()==ROOK )
+                         || getSquare(CASTLING_QUEENSIDE_KINGTARGET[CIWHITE]).myPieceType()==KING
+                         || getSquare(CASTLING_QUEENSIDE_KINGTARGET[CIWHITE]).myPieceType()==ROOK )
                     && ( isSquareEmpty(CASTLING_QUEENSIDE_ROOKTARGET[CIWHITE])
-                        || getBoardSquare(CASTLING_QUEENSIDE_ROOKTARGET[CIWHITE]).myPieceType()==KING
-                        || getBoardSquare(CASTLING_QUEENSIDE_ROOKTARGET[CIWHITE]).myPieceType()==ROOK )
+                        || getSquare(CASTLING_QUEENSIDE_ROOKTARGET[CIWHITE]).myPieceType()==KING
+                        || getSquare(CASTLING_QUEENSIDE_ROOKTARGET[CIWHITE]).myPieceType()==ROOK )
             ) {
                 if (toposPceID == NO_PIECE_ID && topos == frompos - 2)  // seems to be std-chess notation (king moves 2 aside)
                     topos = findRook(coordinateString2Pos("a1"), frompos - 1);
@@ -915,7 +915,7 @@ public class ChessBoard {
                     frompos = NOWHERE;
                     topos = CASTLING_QUEENSIDE_ROOKTARGET[CIWHITE];
                 } else {
-                    basicMoveFromTo(ROOK, getBoardSquare(topos).myPieceID(), topos, CASTLING_QUEENSIDE_ROOKTARGET[CIWHITE]);
+                    basicMoveFromTo(ROOK, getSquare(topos).myPieceID(), topos, CASTLING_QUEENSIDE_ROOKTARGET[CIWHITE]);
                     //target position is always the same, even for chess960 - touches rook first, but nobody knows ;-)
                     topos = CASTLING_QUEENSIDE_KINGTARGET[CIWHITE];
                 }
@@ -992,13 +992,13 @@ public class ChessBoard {
         return (kingsideCastlingAllowed[color]
                 && !isCheck(color)
                 && (isSquareEmpty(CASTLING_KINGSIDE_KINGTARGET[color])
-                    || ( getBoardSquare(CASTLING_KINGSIDE_KINGTARGET[color]).myPiece().color() == color
-                         &&   (isKing(getBoardSquare(CASTLING_KINGSIDE_KINGTARGET[color]).myPieceType())
-                               || isRook(getBoardSquare(CASTLING_KINGSIDE_KINGTARGET[color]).myPieceType()))) )
+                    || ( getSquare(CASTLING_KINGSIDE_KINGTARGET[color]).myPiece().color() == color
+                         &&   (isKing(getSquare(CASTLING_KINGSIDE_KINGTARGET[color]).myPieceType())
+                               || isRook(getSquare(CASTLING_KINGSIDE_KINGTARGET[color]).myPieceType()))) )
                 && (isSquareEmpty(CASTLING_KINGSIDE_ROOKTARGET[color])
-                    || (getBoardSquare(CASTLING_KINGSIDE_ROOKTARGET[color]).myPiece().color() == color
-                        && (isKing(getBoardSquare(CASTLING_KINGSIDE_ROOKTARGET[color]).myPieceType())
-                               || isRook(getBoardSquare(CASTLING_KINGSIDE_ROOKTARGET[color]).myPieceType()))) )
+                    || (getSquare(CASTLING_KINGSIDE_ROOKTARGET[color]).myPiece().color() == color
+                        && (isKing(getSquare(CASTLING_KINGSIDE_ROOKTARGET[color]).myPieceType())
+                               || isRook(getSquare(CASTLING_KINGSIDE_ROOKTARGET[color]).myPieceType()))) )
                 && allSquaresEmptyOrRookFromTo(kingPos, CASTLING_KINGSIDE_KINGTARGET[color])
                 && allSquaresFromToWalkable4KingOfColor(kingPos, CASTLING_KINGSIDE_KINGTARGET[color], color )
         );
@@ -1017,11 +1017,11 @@ public class ChessBoard {
             return NOWHERE;
         int p=fromPosIncl;
         while (p!=toPosIncl){
-            if (colorlessPieceType(getBoardSquare(p).myPieceType()) == ROOK)
+            if (colorlessPieceType(getSquare(p).myPieceType()) == ROOK)
                 return p;
             p+=dir;
         }
-        if (colorlessPieceType(getBoardSquare(p).myPieceType()) == ROOK)
+        if (colorlessPieceType(getSquare(p).myPieceType()) == ROOK)
             return p;
         return NOWHERE;
     }
@@ -1071,7 +1071,7 @@ public class ChessBoard {
         int p=fromPosExcl;
         do  {
             p += dir;
-            if ( !getBoardSquare(p).walkable4king(color) )
+            if ( !getSquare(p).walkable4king(color) )
                 return false;
         } while (p!=toPosIncl);
         return true;
@@ -1526,7 +1526,7 @@ public class ChessBoard {
         return repetitions;
     }
 
-    Square getBoardSquare(int pos) {
+    Square getSquare(int pos) {
         return boardSquares[pos];
     }
 
@@ -1550,7 +1550,7 @@ public class ChessBoard {
         if (m.to() == m2bBlocked.from())
             return true;
         if ( m.from() == m2bBlocked.to()
-                && isPawn((getBoardSquare(m2bBlocked.from()).myPiece().pieceType()) )
+                && isPawn((getSquare(m2bBlocked.from()).myPiece().pieceType()) )
                 && !isSquareEmpty(m2bBlocked.to()) ) {
             return true; // pawn tries to take, but target moves away, so m hinders the pawn move
         }

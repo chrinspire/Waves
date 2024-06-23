@@ -23,23 +23,22 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 
-public class MovesCollection extends AbstractCollection<SimpleMove> {
-    private HashMap<Integer, SimpleMove> moves;
+public class MovesCollection extends AbstractCollection<Move> {
+    private HashMap<Integer, Move> moves;
 
-    private final int color;  // color is needed to know how to aggregate move evaluations (board perspective:
-
-    public MovesCollection(int color) {
+    public MovesCollection() {
         this.moves = new HashMap<>(8);;
-        this.color = color;
     }
-    // larger number are better for white, smaller is better for black)
 
-    Collection<SimpleMove> getAllMoves() {
+    Collection<Move> getAllMoves() {
         if (moves == null || moves.isEmpty())
             return null;
         return moves.values();
     }
 
+    public Move getMoveTo(int to) {
+        return moves.get(to);
+    }
 
     @Override
     /**
@@ -47,13 +46,13 @@ public class MovesCollection extends AbstractCollection<SimpleMove> {
      * @param em
      * @return
      */
-    public boolean add(SimpleMove m) {
-        SimpleMove old = moves.put(m.hashCode(),m);
+    public boolean add(Move m) {
+        Move old = moves.put(m.to(),m);
         return m != old;
     }
 
     @Override
-    public Iterator<SimpleMove> iterator() {
+    public Iterator<Move> iterator() {
         return moves.values().iterator();
     }
 
@@ -62,10 +61,9 @@ public class MovesCollection extends AbstractCollection<SimpleMove> {
         return moves.size();
     }
 
-    //// specialized getters
-
-    protected int color() {
-        return color;
+    @Override
+    public boolean isEmpty() {
+        return moves.isEmpty();
     }
 
 }

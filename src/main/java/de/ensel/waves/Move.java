@@ -214,6 +214,9 @@ public class Move {
         return eval;
     }
 
+    public ChessPiece piece() {
+        return myPiece;
+    }
 
     //// setter
 
@@ -235,12 +238,11 @@ public class Move {
 
     private boolean isBlockedByKingPin() {
         //TODO
-        return true;
+        return false;
     }
 
     public boolean isASingleMoveNow() {
-        if (myPiece.id() != fromSq.myPieceID())
-            return false;  // mov is not starting at my real piece
+        assert( myPiece.id() == fromSq.myPieceID() );  // mov must be starting at my real piece
         if (toSq.hasPieceOfColor(myPiece.color()))
             return false; // target already occupied
         // loop over all intermediate Sqs, if they are free
@@ -249,6 +251,24 @@ public class Move {
                 return false;
         }
         return true;
+    }
+
+    public Evaluation getMoveEvaluation() {
+        if (!piece().board().hasPieceOfColorAt(opponentColorIndex(piece().color()), to()) || !isASingleMoveNow())
+            return new Evaluation();
+        return new Evaluation(-piece().board().getPieceAt(to()).getValue(), 0);
+    }
+
+    public Evaluation getMoveEvaluation(List<Move> moveContext) {
+        // TODO: consider context of already done moves! really check who is now left there.
+        // This is just an incomplete first implementation working for 1-move contexts!:
+        // if (any of) the moves has taken my piece or moved away as a target, then 0
+        for (Move m : moveContext) {
+            if (m.from() == toSq.pos() && m.to() == fromSq.pos())
+                return new Evaluation();
+        }
+        // if my target has moved away, then diminish eval by the taken piece, but also needs to check if I now get beaten there (or may be not, as this is a later step...)
+        return getMoveEvaluation();
     }
 }
 

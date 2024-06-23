@@ -119,7 +119,7 @@ public class ChessBoardController implements ChessEngine {
         else
             pceInfo = chessBasicRes.getString("pieceCharset.empty");
         // squareInfo.put("Piece:",pceInfo);
-        Square sq = board.getBoardSquare(pos);
+        Square sq = board.getSquare(pos);
         //squareInfo.put("SquareId:",""+pos+" = "+ squareName(pos));
         squareInfo.put("Base Value:",""+(pce==null ? "0" : pce.baseValue()));
         if (squareFromPceId!=NO_PIECE_ID) {

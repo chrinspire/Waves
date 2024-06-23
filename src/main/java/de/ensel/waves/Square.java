@@ -19,6 +19,7 @@
 package de.ensel.waves;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.waves.ChessBoard.NO_PIECE_ID;
@@ -31,6 +32,9 @@ public class Square {
     private int clashEvalResult = 0;
     boolean[] blocksCheckFor = new boolean[2];  // tells if a piece here can block a check here (for king with colorindex) by taking a checker of moving in the way
 
+    List<Move> depMovesOver  = new ArrayList<>(400); // todo: determine max reasonable capacity
+    List<Move> depMovesStart = new ArrayList<>(200); // todo: determine max reasonable capacity
+    List<Move> depMovesEnd   = new ArrayList<>(200); // todo: determine max reasonable capacity
     //// Constructors
 
     Square(ChessBoard myChessBoard, int myPos) {
@@ -178,4 +182,52 @@ public class Square {
         return 0;
     }
 
+    public void setupAddDependentMoveSlidingOver(Move m) {
+        depMovesOver.add(m);
+    }
+
+    public void setupAddDependentMoveStart(Move m) {
+        depMovesStart.add(m);
+    }
+
+    public void setupAddDependentMoveEnd(Move m) {
+        depMovesEnd.add(m);
+    }
+
+    /**
+     *
+     * @return Stream of all Moves of all pieces that end here.
+     */
+    public Stream<Move> getMovesToHere() {
+        return depMovesEnd.stream();
+    }
+
+    /**
+     * like getMovesToHere(), but filtered to those move coming directly from a piece origin.
+     * @return Stream of all Moves of all pieces that can come here directly.
+     */
+    public Stream<Move> getSingleMovesToHere() {
+        return depMovesEnd.stream().filter(move -> move.from() == move.piece().pos());
+    }
+
+    public Stream<Move> getSingleMovesSlidingOverHere() {
+        return depMovesOver.stream().filter(move -> move.from() == move.piece().pos());
+    }
+
+
+//    /**
+//     * ! result is no copy, keep unmodified
+//     * @return List of Moves of all pieces that could slide over this square.
+//     */
+//    public List<Move> getMovesSlidingOver() {
+//        return depMovesOver;
+//    }
+//
+//    /**
+//     * ! result is no copy, keep unmodified
+//     * @return List of Moves of all pieces that could start from here.
+//     */
+//    public List<Move> getMovesFromHere() {
+//        return depMovesStart;
+//    }
 }

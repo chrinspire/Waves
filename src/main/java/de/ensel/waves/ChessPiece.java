@@ -20,7 +20,8 @@ package de.ensel.waves;
 
 import de.ensel.chessbasics.ChessBasics;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 import static de.ensel.chessbasics.ChessBasics.*;
 import static java.lang.Math.max;
@@ -32,13 +33,13 @@ public class ChessPiece {
     private final int myPceID;
     private int myPos;
 
-    private Move[][] moves;
+    private MovesCollection[] moves;
 
     //// constructors + factory
 
-    ChessPiece(ChessBoard myChessBoard, int pceTypeNr, int pceID, int pcePos) {
+    ChessPiece(ChessBoard myChessBoard, int pceType, int pceID, int pcePos) {
         this.board = myChessBoard;
-        myPceType = pceTypeNr;
+        myPceType = pceType;
         myPceID = pceID;
         myPos = pcePos;
         resetPieceBasics();
@@ -62,23 +63,31 @@ public class ChessPiece {
     }
 
     private void setupMovesWithDependencies(int[][] moveMatrix) {
-        moves = new Move[64][];
-        for (int frompos = 0; frompos < NR_SQUARES; frompos++) {
-            moves[frompos] = new Move[moveMatrix[frompos].length];
-            for (int n = 0; n < moveMatrix[frompos].length; n++) {
-                // prepare intermediate squares
-                int[] intermedPos = calcPositionsFromTo(frompos, n);
+        moves = new MovesCollection[64];
+        for (int fromPos = 0; fromPos < NR_SQUARES; fromPos++) {
+            moves[fromPos] = new MovesCollection();
+            for (int n = 0; n < moveMatrix[fromPos].length; n++) {
+                // prepare connection to intermediate squares (sliding over)
+                int toPos = moveMatrix[fromPos][n];
+                int[] intermedPos = calcPositionsFromTo(fromPos, toPos);
                 Square[] intermediateSquares = new Square[max(0,intermedPos.length-1)];
                 for (int i = 0; i < intermediateSquares.length; i++) {
-                    intermediateSquares[i] = board.getBoardSquare(intermedPos[i+1]);
+                    intermediateSquares[i] = board.getSquare(intermedPos[i+1]);
                 }
                 // create new move
-                moves[frompos][n] = new Move(
+                Move newMove = new Move(
                         this,
-                        board.getBoardSquare(frompos),
-                        board.getBoardSquare(moveMatrix[frompos][n]),
+                        board.getSquare(fromPos),
+                        board.getSquare(toPos),
                         intermediateSquares);
-            };
+                moves[fromPos].add( newMove );
+                // setup connection to start, end and intermediate squares
+                board.getSquare(fromPos).setupAddDependentMoveStart(newMove);
+                board.getSquare(toPos).setupAddDependentMoveStart(newMove);
+                for (int i = 0; i < intermediateSquares.length; i++) {
+                    intermediateSquares[i].setupAddDependentMoveSlidingOver(newMove);
+                }
+            }
         }
     }
 
@@ -107,16 +116,77 @@ public class ChessPiece {
     }
 
     public boolean isALegalMoveForMe(SimpleMove m) {
-        return true; // TODO
+        if (m.from() != pos() )
+            return false;
+
+        Move move = getMove(pos(), m.to());
+        if (move == null)
+            return false;
+
+        // TODO, check like here:
         /* isBasicallyALegalMoveForMeTo(m.to())   // TODO: do we need to check this again, or may .isBasicallyLegal be used here?
                 && board.moveIsNotBlockedByKingPin(this, m.to())
                 && (!board.isCheck(color())
                     || board.nrOfChecks(color()) == 1 && board.posIsBlockingCheck(color(), m.to())
                     || isKing(myPceType)); */
+        return move.isALegalMoveNow();
     }
 
-    boolean canMove() {
-        if (moves == null || moves[pos()] == null || moves[pos()].length == 0 ) {
+    private Move getMove(int from, int to) {
+        if (moves == null || moves[from] == null || moves[from].isEmpty())
+            return null;
+        return moves[from].getMoveTo(to);
+    }
+
+    public Evaluation getMoveEvaluation(int toPos) {
+        Evaluation eval = getDirectMoveEvaluation(toPos);
+        if (eval == null)
+            return null;
+        List<Move> moveContext = new ArrayList<>(5);
+        moveContext.add(getMove(pos(),toPos));
+        // check all moves that are enabled by this move
+        // a) change move evals that would have taken this piece here
+        board.getSquare(pos()).getSingleMovesToHere()
+                .forEach(move -> {
+                    System.out.println("deminishing " + move + ": " + move.getMoveEvaluation());
+                    eval.subtractEval(move.getMoveEvaluation());
+                    eval.addEval(move.getMoveEvaluation(moveContext));
+                });
+        // b) enable moves that now can slide over this square here
+        board.getSquare(pos()).getSingleMovesSlidingOverHere()
+                .forEach(move -> {
+                    System.out.println("enabling@from " + move + ": " + move.getMoveEvaluation());
+                    eval.addEval(move.getMoveEvaluation());
+                });
+        // c) enable moves that now can take this piece at the toPos
+        board.getSquare(toPos).getSingleMovesToHere()
+                .forEach(move -> {
+                    System.out.println("enabling@to " + move + ": " + move.getMoveEvaluation());
+                    eval.addEval(-getValue(),0);
+                    eval.addEval(move.getMoveEvaluation(moveContext));
+                });
+        // d) delay sliding moves that are now blocked at the toPos
+        board.getSquare(toPos).getSingleMovesSlidingOverHere()
+                .forEach(move -> {
+                    System.out.println("blocking " + move + ": " + move.getMoveEvaluation());
+                    Evaluation e = move.getMoveEvaluation(moveContext);
+                    eval.subtractEval(e);   // not possible any more
+                    e.timeWarp(+1);
+                    eval.addEval(e);        // but possible in the future
+                });
+
+        return eval;
+    }
+
+    public Evaluation getDirectMoveEvaluation(int to) {
+        Move move = getMove(pos(), to);
+        if (move == null)
+            return null;
+        return move.getMoveEvaluation();
+    }
+
+    public boolean canMove() {
+        if (moves == null || moves[pos()] == null || moves[pos()].isEmpty() ) {
             return false;
         }
         //TODO: loop over all moves and check if they are legal
@@ -170,7 +240,7 @@ public class ChessPiece {
     }
 
     public int staysEval() {
-        return board.getBoardSquare(myPos).clashEval();
+        return board.getSquare(myPos).clashEval();
     }
 
 //    public boolean canStayReasonably() {
@@ -178,7 +248,7 @@ public class ChessPiece {
 //    }
 
     private Stream<Move> movesStream() {
-        return Arrays.stream(moves[pos()]);
+        return moves[pos()].stream();
     }
 
 
@@ -194,6 +264,10 @@ public class ChessPiece {
 
     public int pos() {
         return myPos;
+    }
+
+    public ChessBoard board() {
+        return board;
     }
 
 
