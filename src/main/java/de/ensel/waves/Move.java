@@ -327,6 +327,12 @@ public class Move implements Comparable<Move> {
                 && myPiece.isADirectMoveAfter(this, bc);
     }
 
+    public boolean isDefendingAfter(VBoardInterface bc) {
+        return piece().posAfter(bc) == from()  // piece is still here
+                && !isBlockedByKingPin(bc)
+                && myPiece.isDefendingTargetAfter(this, bc);
+    }
+
     private boolean isBlockedByKingPin(VBoardInterface bc) {
         //TODO
         return false;

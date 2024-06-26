@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 
 import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.waves.ChessBoard.NO_PIECE_ID;
+import static java.lang.Math.abs;
 
 public class Square {
     final ChessBoard board;
@@ -113,6 +114,26 @@ public class Square {
         return bc.hasPieceOfColorAt(color, pos());
     }
 
+    ChessPiece cheapestDefenderHereForPieceAfter(ChessPiece pce, VBoardInterface fbAfter) {
+        return getMovesToHere()
+                .filter(move ->
+                        move.piece().color() == pce.color()
+                        && move.piece() != pce
+                        && move.isDefendingAfter(fbAfter))
+                .map(Move::piece)
+                .min(Comparator.comparingInt(p -> abs(p.getValue())))
+                .orElse(null);
+    }
+
+    ChessPiece cheapestAttackersOfColorToHereAfter(int color, VBoardInterface fbAfter) {
+        return getMovesToHere()
+                .filter(move ->
+                        move.piece().color() == color
+                        && move.isALegalMoveAfter(fbAfter))
+                .map(Move::piece)
+                .min(Comparator.comparingInt(p -> abs(p.getValue())))
+                .orElse(null);
+    }
 
 
     //// getter

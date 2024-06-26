@@ -29,7 +29,7 @@ import static java.text.MessageFormat.format;
 
 public class ChessBoard implements VBoardInterface {
     public static final ResourceBundle chessBoardRes = ResourceBundle.getBundle("de.ensel.chessboardres");
-    public static final int SEARCH_MAXDEPTH = 10;
+    final ChessEngineParams engParams = new ChessEngineParams();
 
     final VBoard NOCHANGE = new VBoard(this);  // the empty change - for reuse...
 
@@ -41,6 +41,8 @@ public class ChessBoard implements VBoardInterface {
     public static boolean DEBUGMSG_CLASH_CALCULATION = false;
     public static boolean DEBUGMSG_MOVEEVAL = false;   // <-- best for checking why moves are evaluated the way they are
     public static boolean DEBUGMSG_MOVESELECTION = false || DEBUGMSG_MOVEEVAL;
+
+    public static boolean SHOW_REASONS = true;  // DEBUGMSG_MOVESELECTION;
 
     public static int DEBUGFOCUS_SQ = coordinateString2Pos("e1");   // changeable globally, just for debug output and breakpoints+watches
     public static int DEBUGFOCUS_VP = 0;   // changeable globally, just for debug output and breakpoints+watches
@@ -714,7 +716,7 @@ public class ChessBoard implements VBoardInterface {
         // Compare all moves returned by all my pieces and find the best.
         //Stream<Move> bestOpponentMoves = getBestMovesForColAfter( opponentColor(getTurnCol()), NOCHANGE );
         countCalculatedBoards = 0;
-        Stream<Move> bestMoves    = getBestMovesForColAfter( getTurnCol(), NOCHANGE );
+        Stream<Move> bestMoves    = getBestMovesForColAfter( getTurnCol(), NOCHANGE, engParams );
         bestMove = bestMoves.findFirst().orElse(null);
         //System.err.println("  --> " + bestMove );
         if (DEBUGMSG_MOVESELECTION) {
@@ -726,9 +728,9 @@ public class ChessBoard implements VBoardInterface {
     }
 
     int countCalculatedBoards;
-    Stream<Move> getBestMovesForColAfter(final int color, VBoardInterface upToNowBoard) {
-        final int maxBestMoves = 20;  // only the top moves are sorted
-        List<Move> bestMoveCandidates = new ArrayList<>(maxBestMoves*2);
+    Stream<Move> getBestMovesForColAfter(final int color, VBoardInterface upToNowBoard, ChessEngineParams engParams) {
+        final int maxBestMoves = engParams.searchMaxNrOfBestMovesPerPly();  // only the top moves are sorted
+        List<Move> bestMoveCandidates = new ArrayList<>(maxBestMoves+(maxBestMoves>>1));
         List<Move> bestMoves = new ArrayList<>(maxBestMoves);
         List<Move> restMoves = new ArrayList<>();
         //nrOfLegalMoves[color] = 0;
@@ -737,28 +739,29 @@ public class ChessBoard implements VBoardInterface {
                 .forEach( p -> {
                     p.legalMovesAfter(upToNowBoard).forEach( move -> {
                         Move evaluatedMove = p.getEvaluatedMoveToAfter(move, upToNowBoard);
-                        addMoveToSortedListOfCol(evaluatedMove, bestMoveCandidates, color, maxBestMoves*2, restMoves);
+                        addMoveToSortedListOfCol(evaluatedMove, bestMoveCandidates, color, maxBestMoves+(maxBestMoves>>1), restMoves);
                         countCalculatedBoards++;
                     });
                 });
-        // reevaluate moves by  move simulation
-        if (upToNowBoard.futureLevel() < SEARCH_MAXDEPTH-1) {
+        // reevaluate moves by move simulation
+        if (upToNowBoard.futureLevel() < engParams.searchMaxDepth()-1) {
             for (Move move : bestMoveCandidates) {
-                if (move != null) {
-                    if ( abs(move.getEval().getEvalAt(0)) >= 3
-                         || (upToNowBoard.futureLevel() <= 0 && abs(move.getEval().getEvalAt(1)) >= 6) ) {
-                        VBoard nextBoard = VBoard.createNext(upToNowBoard, move);
-                        Move bestOppMove = getBestMovesForColAfter(opponentColor(color), nextBoard)
-                                .findFirst().orElse(null);
-                        if (bestOppMove != null) {
-                            move.addEval(bestOppMove.getEval());
-                            move.getEval().setReason(bestOppMove.getEval().getReason());
-                            if (DEBUGMSG_MOVESELECTION && upToNowBoard.futureLevel() == 0)
-                                debugPrintln(DEBUGMSG_MOVESELECTION, "Reevaluated " + move + " to " + move.getEval());
-                        }
+                if ( abs(move.getEval().getEvalAt(0)) >= 3
+                     || abs(move.getEval().getEvalAt(2)) >= 6
+                     || (upToNowBoard.futureLevel() <= 0   // deep dive also for more opponent moves?
+                            && abs(move.getEval().getEvalAt(1)) >= 6)
+                ) {
+                    VBoard nextBoard = VBoard.createNext(upToNowBoard, move);
+                    Move bestOppMove = getBestMovesForColAfter(opponentColor(color), nextBoard, engParams)
+                            .findFirst().orElse(null);
+                    if (bestOppMove != null) {
+                        move.addEval(bestOppMove.getEval());
+                        move.getEval().setReason(bestOppMove.getEval().getReason());
+                        if (DEBUGMSG_MOVESELECTION && upToNowBoard.futureLevel() == 0)
+                            debugPrintln(DEBUGMSG_MOVESELECTION, "Reevaluated " + move + " to " + move.getEval() + " reason: " + move.getEval().getReason());
                     }
-                    addMoveToSortedListOfCol(move, bestMoves, color, maxBestMoves, restMoves);
                 }
+                addMoveToSortedListOfCol(move, bestMoves, color, maxBestMoves, restMoves);
             }
         }
         return Stream.concat( bestMoves.stream(), restMoves.stream());

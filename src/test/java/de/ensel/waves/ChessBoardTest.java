@@ -5,7 +5,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.stream.Stream;
 
 import static de.ensel.chessbasics.ChessBasics.*;
@@ -50,7 +49,7 @@ class ChessBoardTest {
         ChessPiece p3 = board.getPieceAt(p3Pos);
 
         // act
-        Stream<Move> bestMoveForCol = board.getBestMovesForColAfter(CIWHITE,board.NOCHANGE);
+        Stream<Move> bestMoveForCol = board.getBestMovesForColAfter(CIWHITE,board.NOCHANGE, board.engParams);
 
         // assert
         StringBuilder result = new StringBuilder();

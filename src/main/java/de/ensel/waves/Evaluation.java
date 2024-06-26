@@ -48,25 +48,13 @@ public class Evaluation {
         setEval(eval, futureLevel);
     }
 
-    @Deprecated
-    public Evaluation(int[] rawEval) {
-        this.rawEval = Arrays.copyOf(rawEval, MAX_EVALDEPTH);
-    }
-
-    @Deprecated
-    public int[] getRawEval() {
-        return rawEval;
-    }
-
-    @Deprecated
-    public void copyFromRaw(int[] rawEval) {
-        this.rawEval = Arrays.copyOf(rawEval, MAX_EVALDEPTH);
-    }
-
-
     ////
     boolean isGoodForColor(int color) {
         return isBetterForColorThan(color, new Evaluation().setEval(-1,0));
+    }
+
+    boolean isAboutZero() {
+        return abs(rawEval[0])<=2 && abs(rawEval[1])<=4 && abs(rawEval[2])<=6;
     }
 
     boolean isBetterForColorThan(int color, Evaluation oEval) {
@@ -302,10 +290,10 @@ public class Evaluation {
             result.append(firstEntry);
             result.append("]");
         }
-        if (reason != null) {
+        /*if (reason != null) {
             result.append("!");
             result.append(reason);
-        }
+        }*/
         return result.toString();
     }
 
@@ -314,16 +302,23 @@ public class Evaluation {
         if (this == o) return true;
         if (!(o instanceof Evaluation)) return false;
         Evaluation that = (Evaluation) o;
-        return Arrays.equals(getRawEval(), that.getRawEval());
+        return Arrays.equals(rawEval, that.rawEval);
     }
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(getRawEval());
+        return Arrays.hashCode(rawEval);
     }
 
     public void setReason(String reason) {
         this.reason = reason;
+    }
+
+    public void addReason(String reason) {
+        if (this.reason == null)
+            this.reason = reason;
+        else
+            this.reason += "; " + reason;
     }
 
     public String getReason() {
