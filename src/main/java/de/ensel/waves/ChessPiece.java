@@ -21,9 +21,15 @@ package de.ensel.waves;
 import de.ensel.chessbasics.ChessBasics;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
 import static de.ensel.chessbasics.ChessBasics.*;
+import static de.ensel.waves.ChessBoard.DEBUGMSG_MOVEEVAL;
+import static de.ensel.waves.ChessBoard.DEBUGMSG_MOVESELECTION;
+import static de.ensel.waves.Move.addMoveToSortedListOfCol;
+import static java.lang.Math.abs;
 import static java.lang.Math.max;
 
 public class ChessPiece {
@@ -45,17 +51,20 @@ public class ChessPiece {
         resetPieceBasics();
     }
 
+    // factory
     public static ChessPiece newPiece(ChessBoard chessBoard, int pceType, int newPceID, int pos) {
-        ChessPiece newPce = new ChessPiece(chessBoard, pceType, newPceID, pos);
+        ChessPiece newPce = isPawn(pceType)
+                ? new ChessPiecePawn(chessBoard, pceType, newPceID, pos)
+                : new ChessPiece(chessBoard, pceType, newPceID, pos);
         int[][] moveMatrix =  switch (colorlessPieceType(pceType)) {
-            case BISHOP -> newPce.moveMatix4Bishop;
-            case ROOK -> newPce.moveMatix4Rook;
-            case KNIGHT -> newPce.moveMatix4Knight;
-            case QUEEN -> newPce.moveMatix4Queen;
-            case KING -> newPce.moveMatix4King;
+            case BISHOP -> newPce.moveMatrix4Bishop;
+            case ROOK -> newPce.moveMatrix4Rook;
+            case KNIGHT -> newPce.moveMatrix4Knight;
+            case QUEEN -> newPce.moveMatrix4Queen;
+            case KING -> newPce.moveMatrix4King;
             case PAWN -> isPieceTypeWhite(pceType)
-                    ? newPce.moveMatix4PawnWhite
-                    : newPce.moveMatix4PawnBlack;
+                    ? newPce.moveMatrix4PawnWhite
+                    : newPce.moveMatrix4PawnBlack;
             default -> throw new IllegalStateException("Unexpected value: " + pceType);
         };
         newPce.setupMovesWithDependencies(moveMatrix);
@@ -132,64 +141,126 @@ public class ChessPiece {
         return move.isALegalMoveNow();
     }
 
-    private Move getMove(int from, int to) {
+    public Move getMove(int from, int to) {
         if (moves == null || moves[from] == null || moves[from].isEmpty())
             return null;
         return moves[from].getMoveTo(to);
     }
 
-    public Evaluation getMoveEvaluation(int toPos) {
-        Evaluation eval = getDirectMoveEvaluation(toPos);
-        if (eval == null)
+    public Move getDirectMove(int toPos) {
+        return getMove(pos(), toPos);
+    }
+
+    public Move getDirectMoveAfter(int toPos, VBoardInterface fb) {
+        int fromPos = posAfter(fb);
+        return getMove(fromPos, toPos);
+    }
+
+
+    public Evaluation getMoveToEvalAfter(int toPos, VBoardInterface fb) {
+        int fromPos = posAfter(fb);
+        Move evaluatedMove = getEvaluatedMoveToAfter(getMove(fromPos, toPos), fb);
+        if (evaluatedMove == null)
             return null;
-        List<Move> moveContext = new ArrayList<>(5);
-        moveContext.add(getMove(pos(),toPos));
+        return evaluatedMove.getEval();
+    }
+
+    /** generates a new evaluated move
+     * @param move2Bevaluated the basic move or any other already evaluated move
+     * @param fb future board as VBoardInterface
+     * @return a new evaluated Move
+     */
+    public Move getEvaluatedMoveToAfter(Move move2Bevaluated, VBoardInterface fb) {
+        if (move2Bevaluated == null || !move2Bevaluated.isALegalMoveAfter(fb))
+            return null;
+        VBoard fbAfter = VBoard.createNext(fb, move2Bevaluated);
+        Evaluation eval = move2Bevaluated.getSimpleMoveEvalAfter(fb);
+        assert(eval != null);
         // check all moves that are enabled by this move
         // a) change move evals that would have taken this piece here
-        board.getSquare(pos()).getSingleMovesToHere()
+        Square fromSq = board.getSquare(move2Bevaluated.from());
+        fromSq.getSingleMovesToHere()
+                .filter(move -> move.isALegalMoveAfter(fbAfter))
                 .forEach(move -> {
-                    System.out.println("deminishing " + move + ": " + move.getMoveEvaluation());
-                    eval.subtractEval(move.getMoveEvaluation());
-                    eval.addEval(move.getMoveEvaluation(moveContext));
+                    if (DEBUGMSG_MOVEEVAL)
+                        System.out.println("diminishing " + move + ":");
+                    eval.subtractEval(move.getSimpleMoveEvalAfter(fb));
+                    eval.addEval(move.getSimpleMoveEvalAfter(fbAfter));
+                    if (DEBUGMSG_MOVEEVAL)
+                        System.out.println("... to " + eval + ".");
                 });
         // b) enable moves that now can slide over this square here
-        board.getSquare(pos()).getSingleMovesSlidingOverHere()
+        fromSq.getSingleMovesSlidingOverHere()
+                .filter(move -> move.isALegalMoveAfter(fbAfter))
                 .forEach(move -> {
-                    System.out.println("enabling@from " + move + ": " + move.getMoveEvaluation());
-                    eval.addEval(move.getMoveEvaluation());
+                    if (DEBUGMSG_MOVEEVAL)
+                        System.out.println("enabling@from " + move + " -> adding " + move.getSimpleMoveEvalAfter(fbAfter));
+                    eval.addEval(move.getSimpleMoveEvalAfter(fbAfter));
                 });
         // c) enable moves that now can take this piece at the toPos
-        board.getSquare(toPos).getSingleMovesToHere()
+        Square toSq = board.getSquare(move2Bevaluated.to());
+        toSq.getSingleMovesToHere()
+                .filter(move -> move.isALegalMoveAfter(fbAfter))
                 .forEach(move -> {
-                    System.out.println("enabling@to " + move + ": " + move.getMoveEvaluation());
+                    if (DEBUGMSG_MOVEEVAL)
+                        System.out.println("enabling@to " + move + ": ");
                     eval.addEval(-getValue(),0);
-                    eval.addEval(move.getMoveEvaluation(moveContext));
+                    eval.addEval(move.getSimpleMoveEvalAfter(fbAfter));
+                    if (DEBUGMSG_MOVEEVAL)
+                        System.out.println("... to " + eval + ".");
                 });
         // d) delay sliding moves that are now blocked at the toPos
-        board.getSquare(toPos).getSingleMovesSlidingOverHere()
+        toSq.getSingleMovesSlidingOverHere()
+                .filter(move -> move.isALegalMoveAfter(fbAfter))
                 .forEach(move -> {
-                    System.out.println("blocking " + move + ": " + move.getMoveEvaluation());
-                    Evaluation e = move.getMoveEvaluation(moveContext);
+                    if (DEBUGMSG_MOVEEVAL)
+                        System.out.println("blocking " + move + ": " );
+                    Evaluation e = move.getSimpleMoveEvalAfter(fbAfter);
                     eval.subtractEval(e);   // not possible any more
                     e.timeWarp(+1);
                     eval.addEval(e);        // but possible in the future
+                    if (DEBUGMSG_MOVEEVAL)
+                        System.out.println("... to " + eval + ".");
                 });
-
-        return eval;
+        // e) see what this piece can do from here
+        Move bestDirectFollowUpMove = getBestEvaluatedDirectFollowUpMoveAfter(fbAfter);
+        if (bestDirectFollowUpMove != null) {
+            Evaluation nextBestEval = bestDirectFollowUpMove
+                    .getEval()
+                    .timeWarp(+1);
+            eval.addEval(nextBestEval);        // but possible in the future
+        }
+        if (DEBUGMSG_MOVESELECTION)
+            eval.setReason(fbAfter.toString());
+        return new Move(move2Bevaluated).setEval(eval);
     }
 
-    public Evaluation getDirectMoveEvaluation(int to) {
+    private Move getBestEvaluatedDirectFollowUpMoveAfter(VBoard fb) {
+        Move bestFollowUpMove = null;
+        for (Iterator<Move> it = legalMovesAfter(fb).iterator(); it.hasNext(); ) {
+            Move move = it.next();
+            Evaluation eval = move.getSimpleMoveEvalAfter(fb);
+            if (eval != null) {
+                if (bestFollowUpMove == null || eval.isBetterForColorThan(color(), move.getEval())) {
+                    bestFollowUpMove = new Move(move).setEval(eval);
+                }
+            }
+        };
+        return bestFollowUpMove;
+    }
+
+    public Evaluation getDirectMoveToEvaluation(int to) {
         Move move = getMove(pos(), to);
-        if (move == null)
+        if (move == null || !move.isALegalMoveNow())
             return null;
-        return move.getMoveEvaluation();
+        return move.getSimpleMoveEval();
     }
 
     public boolean canMove() {
         if (moves == null || moves[pos()] == null || moves[pos()].isEmpty() ) {
             return false;
         }
-        //TODO: loop over all moves and check if they are legal
+        // loop over all moves and check if at least one is legal now
         for (Move m : moves[pos()]) {
             if (m.isALegalMoveNow()) {
                 return true;
@@ -198,11 +269,36 @@ public class ChessPiece {
         return false;
     }
 
+    public Stream<Move> legalMovesAfter(VBoardInterface fb) {
+        assert(moves != null);
+        assert(moves[posAfter(fb)] != null);
+        int fromPos = posAfter(fb);
+        // after pawn promotion is impemented: assert(!moves[pos()].isEmpty());
+        List<Move> legalMoves = new ArrayList<>();
+        //Todo: cache and reset after a real move
+        //loop over all moves and check if at least one is legal now
+        for (Move m : moves[fromPos]) {
+            if (m.isALegalMoveAfter(fb))
+                legalMoves.add(m);
+        }
+        return legalMoves.stream();
+    }
+
     private void clearMovesAndAllChances() {
         //TODO
         ;
     }
 
+    public boolean isADirectMoveAfter(Move move, VBoardInterface fb) {
+        if (move.toSq().hasPieceOfColorAfter(color(), fb))
+            return false; // target already occupied
+        // loop over all intermediate Sqs, if they are free
+        for (Square iSq : move.intermedSqs()) {
+            if (!iSq.isEmptyAfter(fb))
+                return false;
+        }
+        return true;
+    }
 
     /**
      * die() piece is EOL - clean up
@@ -247,8 +343,15 @@ public class ChessPiece {
 //        return evalIsOkForColByMin(board.getBoardSquare(myPos).clashEval(), color());
 //    }
 
-    private Stream<Move> movesStream() {
+    private Stream<Move> allMoves() {
         return moves[pos()].stream();
+    }
+
+
+    //// BoardChange dependent analogies for getters
+
+    public int posAfter(VBoardInterface bc) {
+        return bc.getPiecePos(this);
     }
 
 
@@ -304,7 +407,7 @@ public class ChessPiece {
 
 
 
-    int[][] moveMatix4King = new int[][] {
+    int[][] moveMatrix4King = new int[][] {
             /* rank 8: */ { 1, 9, 8 },  { 2, 0, 8, 10, 9 },  { 3, 1, 9, 11, 10 },  { 4, 2, 10, 12, 11 },  { 5, 3, 11, 13, 12 },  { 6, 4, 12, 14, 13 },  { 7, 5, 13, 15, 14 },  { 6, 14, 15 },
             /* rank 7: */ { 9, 1, 17, 16, 0 },  { 10, 8, 2, 16, 0, 18, 17, 1 },  { 11, 9, 3, 17, 1, 19, 18, 2 },  { 12, 10, 4, 18, 2, 20, 19, 3 },  { 13, 11, 5, 19, 3, 21, 20, 4 },  { 14, 12, 6, 20, 4, 22, 21, 5 },  { 15, 13, 7, 21, 5, 23, 22, 6 },  { 14, 22, 6, 23, 7 },
             /* rank 6: */ { 17, 9, 25, 24, 8 },  { 18, 16, 10, 24, 8, 26, 25, 9 },  { 19, 17, 11, 25, 9, 27, 26, 10 },  { 20, 18, 12, 26, 10, 28, 27, 11 },  { 21, 19, 13, 27, 11, 29, 28, 12 },  { 22, 20, 14, 28, 12, 30, 29, 13 },  { 23, 21, 15, 29, 13, 31, 30, 14 },  { 22, 30, 14, 31, 15 },
@@ -315,7 +418,7 @@ public class ChessPiece {
             /* rank 1: */ { 57, 49, 48 },  { 58, 56, 50, 48, 49 },  { 59, 57, 51, 49, 50 },  { 60, 58, 52, 50, 51 },  { 61, 59, 53, 51, 52 },  { 62, 60, 54, 52, 53 },  { 63, 61, 55, 53, 54 },  { 62, 54, 55 }
     };
 
-    int[][] moveMatix4Queen = new int[][] {
+    int[][] moveMatrix4Queen = new int[][] {
             /* rank 8: */ {  /*E*/ 1, 2, 3, 4, 5, 6, 7,  /*SE*/ 9, 18, 27, 36, 45, 54, 63,  /*S*/ 8, 16, 24, 32, 40, 48, 56 },
             {  /*E*/ 2, 3, 4, 5, 6, 7,  /*W*/ 0,  /*SW*/ 8,  /*SE*/ 10, 19, 28, 37, 46, 55,  /*S*/ 9, 17, 25, 33, 41, 49, 57 },
             {  /*E*/ 3, 4, 5, 6, 7,  /*W*/ 1, 0,  /*SW*/ 9, 16,  /*SE*/ 11, 20, 29, 38, 47,  /*S*/ 10, 18, 26, 34, 42, 50, 58 },
@@ -382,7 +485,7 @@ public class ChessPiece {
             {  /*W*/ 62, 61, 60, 59, 58, 57, 56,  /*NW*/ 54, 45, 36, 27, 18, 9, 0,  /*N*/ 55, 47, 39, 31, 23, 15, 7 }
     };
 
-    int[][] moveMatix4Rook = new int[][] {
+    int[][] moveMatrix4Rook = new int[][] {
             /* rank 8: */ {  /*E*/ 1, 2, 3, 4, 5, 6, 7,  /*S*/ 8, 16, 24, 32, 40, 48, 56 },
             {  /*E*/ 2, 3, 4, 5, 6, 7,  /*W*/ 0,  /*S*/ 9, 17, 25, 33, 41, 49, 57 },
             {  /*E*/ 3, 4, 5, 6, 7,  /*W*/ 1, 0,  /*S*/ 10, 18, 26, 34, 42, 50, 58 },
@@ -449,7 +552,7 @@ public class ChessPiece {
             {  /*W*/ 62, 61, 60, 59, 58, 57, 56,  /*N*/ 55, 47, 39, 31, 23, 15, 7 }
     };
 
-    int[][] moveMatix4Bishop = new int[][] {
+    int[][] moveMatrix4Bishop = new int[][] {
             /* rank 8: */ {  /*SE*/ 9, 18, 27, 36, 45, 54, 63 },
             {  /*SW*/ 8,  /*SE*/ 10, 19, 28, 37, 46, 55 },
             {  /*SW*/ 9, 16,  /*SE*/ 11, 20, 29, 38, 47 },
@@ -516,18 +619,19 @@ public class ChessPiece {
             {  /*NW*/ 54, 45, 36, 27, 18, 9, 0 }
     };
 
-    int[][] moveMatix4Knight = new int[][] {
-            /* rank 8: */ { 6, 10, 15, 17 },  { 7, 11, 16, 18 },  { 8, 12, 17, 19 },  { 9, 13, 18, 20 },  { 10, 14, 19, 21 },  { 11, 15, 20, 22 },  { 0, 12, 16, 21, 23 },  { 1, 13, 17, 22, 24 },
-            /* rank 7: */ { 2, 14, 18, 23, 25 },  { 3, 15, 19, 24, 26 },  { 0, 4, 16, 20, 25, 27 },  { 1, 5, 17, 21, 26, 28 },  { 2, 6, 18, 22, 27, 29 },  { 3, 7, 19, 23, 28, 30 },  { 4, 8, 20, 24, 29, 31 },  { 5, 0, 9, 21, 25, 30, 32 },
-            /* rank 6: */ { 6, 1, 10, 22, 26, 31, 33 },  { 7, 0, 2, 11, 23, 27, 32, 34 },  { 8, 1, 3, 12, 24, 28, 33, 35 },  { 9, 2, 4, 13, 25, 29, 34, 36 },  { 10, 3, 5, 14, 26, 30, 35, 37 },  { 11, 4, 6, 15, 27, 31, 36, 38 },  { 12, 5, 7, 16, 28, 32, 37, 39 },  { 13, 6, 8, 17, 29, 33, 38, 40 },
-            /* rank 5: */ { 14, 7, 9, 18, 30, 34, 39, 41 },  { 15, 8, 10, 19, 31, 35, 40, 42 },  { 16, 9, 11, 20, 32, 36, 41, 43 },  { 17, 10, 12, 21, 33, 37, 42, 44 },  { 18, 11, 13, 22, 34, 38, 43, 45 },  { 19, 12, 14, 23, 35, 39, 44, 46 },  { 20, 13, 15, 24, 36, 40, 45, 47 },  { 21, 14, 16, 25, 37, 41, 46, 48 },
-            /* rank 4: */ { 22, 15, 17, 26, 38, 42, 47, 49 },  { 23, 16, 18, 27, 39, 43, 48, 50 },  { 24, 17, 19, 28, 40, 44, 49, 51 },  { 25, 18, 20, 29, 41, 45, 50, 52 },  { 26, 19, 21, 30, 42, 46, 51, 53 },  { 27, 20, 22, 31, 43, 47, 52, 54 },  { 28, 21, 23, 32, 44, 48, 53, 55 },  { 29, 22, 24, 33, 45, 49, 54, 56 },
-            /* rank 3: */ { 30, 23, 25, 34, 46, 50, 55, 57 },  { 31, 24, 26, 35, 47, 51, 56, 58 },  { 32, 25, 27, 36, 48, 52, 57, 59 },  { 33, 26, 28, 37, 49, 53, 58, 60 },  { 34, 27, 29, 38, 50, 54, 59, 61 },  { 35, 28, 30, 39, 51, 55, 60, 62 },  { 36, 29, 31, 40, 52, 56, 61, 63 },  { 37, 30, 32, 41, 53, 57, 62 },
-            /* rank 2: */ { 38, 31, 33, 42, 54, 58, 63 },  { 39, 32, 34, 43, 55, 59 },  { 40, 33, 35, 44, 56, 60 },  { 41, 34, 36, 45, 57, 61 },  { 42, 35, 37, 46, 58, 62 },  { 43, 36, 38, 47, 59, 63 },  { 44, 37, 39, 48, 60 },  { 45, 38, 40, 49, 61 },
-            /* rank 1: */ { 46, 39, 41, 50, 62 },  { 47, 40, 42, 51, 63 },  { 48, 41, 43, 52 },  { 49, 42, 44, 53 },  { 50, 43, 45, 54 },  { 51, 44, 46, 55 },  { 52, 45, 47, 56 },  { 53, 46, 48, 57 }
+    int[][] moveMatrix4Knight = new int[][] {
+            /* rank 8: */ { 10, 17 },  { 11, 16, 18 },  { 8, 12, 17, 19 },  { 9, 13, 18, 20 },  { 10, 14, 19, 21 },  { 11, 15, 20, 22 },  { 12, 21, 23 },  { 13, 22 },
+            /* rank 7: */ { 2, 18, 25 },  { 3, 19, 24, 26 },  { 0, 4, 16, 20, 25, 27 },  { 1, 5, 17, 21, 26, 28 },  { 2, 6, 18, 22, 27, 29 },  { 3, 7, 19, 23, 28, 30 },  { 4, 20, 29, 31 },  { 5, 21, 30 },
+            /* rank 6: */ { 1, 10, 26, 33 },  { 0, 2, 11, 27, 32, 34 },  { 1, 3, 8, 12, 24, 28, 33, 35 },  { 2, 4, 9, 13, 25, 29, 34, 36 },  { 3, 5, 10, 14, 26, 30, 35, 37 },  { 4, 6, 11, 15, 27, 31, 36, 38 },  { 5, 7, 12, 28, 37, 39 },  { 6, 13, 29, 38 },
+            /* rank 5: */ { 9, 18, 34, 41 },  { 8, 10, 19, 35, 40, 42 },  { 9, 11, 16, 20, 32, 36, 41, 43 },  { 10, 12, 17, 21, 33, 37, 42, 44 },  { 11, 13, 18, 22, 34, 38, 43, 45 },  { 12, 14, 19, 23, 35, 39, 44, 46 },  { 13, 15, 20, 36, 45, 47 },  { 14, 21, 37, 46 },
+            /* rank 4: */ { 17, 26, 42, 49 },  { 16, 18, 27, 43, 48, 50 },  { 17, 19, 24, 28, 40, 44, 49, 51 },  { 18, 20, 25, 29, 41, 45, 50, 52 },  { 19, 21, 26, 30, 42, 46, 51, 53 },  { 20, 22, 27, 31, 43, 47, 52, 54 },  { 21, 23, 28, 44, 53, 55 },  { 22, 29, 45, 54 },
+            /* rank 3: */ { 25, 34, 50, 57 },  { 24, 26, 35, 51, 56, 58 },  { 25, 27, 32, 36, 48, 52, 57, 59 },  { 26, 28, 33, 37, 49, 53, 58, 60 },  { 27, 29, 34, 38, 50, 54, 59, 61 },  { 28, 30, 35, 39, 51, 55, 60, 62 },  { 29, 31, 36, 52, 61, 63 },  { 30, 37, 53, 62 },
+            /* rank 2: */ { 33, 42, 58 },  { 32, 34, 43, 59 },  { 33, 35, 40, 44, 56, 60 },  { 34, 36, 41, 45, 57, 61 },  { 35, 37, 42, 46, 58, 62 },  { 36, 38, 43, 47, 59, 63 },  { 37, 39, 44, 60 },  { 38, 45, 61 },
+            /* rank 1: */ { 41, 50 },  { 40, 42, 51 },  { 41, 43, 48, 52 },  { 42, 44, 49, 53 },  { 43, 45, 50, 54 },  { 44, 46, 51, 55 },  { 45, 47, 52 },  { 46, 53 }
     };
 
-    int[][] moveMatix4PawnWhite = new int[][] {
+
+    int[][] moveMatrix4PawnWhite = new int[][] {
             /* rank 8: */ {}, {}, {}, {}, {}, {}, {}, {},
             /* rank 7: */ { 0, 1 },  { 0, 1, 2 },  { 1, 2, 3 },  { 2, 3, 4 },  { 3, 4, 5 },  { 4, 5, 6 },  { 5, 6, 7 },  { 6, 7 },
             /* rank 6: */ { 8, 9 },  { 8, 9, 10 },  { 9, 10, 11 },  { 10, 11, 12 },  { 11, 12, 13 },  { 12, 13, 14 },  { 13, 14, 15 },  { 14, 15 },
@@ -538,7 +642,7 @@ public class ChessPiece {
             /* rank 1: */ {}, {}, {}, {}, {}, {}, {}, {},
     };
 
-    int[][] moveMatix4PawnBlack = new int[][] {
+    int[][] moveMatrix4PawnBlack = new int[][] {
             /* rank 8: */ {}, {}, {}, {}, {}, {}, {}, {},
             /* rank 7: */ { 16, 17 },  { 16, 17, 18 },  { 17, 18, 19 },  { 18, 19, 20 },  { 19, 20, 21 },  { 20, 21, 22 },  { 21, 22, 23 },  { 22, 23 },
             /* rank 6: */ { 24, 25 },  { 24, 25, 26 },  { 25, 26, 27 },  { 26, 27, 28 },  { 27, 28, 29 },  { 28, 29, 30 },  { 29, 30, 31 },  { 30, 31 },
@@ -548,6 +652,5 @@ public class ChessPiece {
             /* rank 2: */ { 56, 57 },  { 56, 57, 58 },  { 57, 58, 59 },  { 58, 59, 60 },  { 59, 60, 61 },  { 60, 61, 62 },  { 61, 62, 63 },  { 62, 63 },
             /* rank 1: */ {}, {}, {}, {}, {}, {}, {}, {},
     };
-
 
 }

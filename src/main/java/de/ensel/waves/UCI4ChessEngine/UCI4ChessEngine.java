@@ -260,7 +260,7 @@ public class UCI4ChessEngine {
 
     void initUCI()  {
         try {
-            uciLog = new BufferedOutputStream(new FileOutputStream("./tideeval_debug.out",true));
+            uciLog = new BufferedOutputStream(new FileOutputStream("./waves_debug.out",true));
         } catch (Exception e){
             System.err.println("**** Fehler: Kann ComLog nicht schreibend öffnen.");
             uciLog = null;

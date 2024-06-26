@@ -21,7 +21,6 @@ package de.ensel.waves;
 import de.ensel.waves.UCI4ChessEngine.ChessEngine;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Locale;
 
 import static de.ensel.chessbasics.ChessBasics.*;
@@ -140,19 +139,18 @@ public class ChessBoardController implements ChessEngine {
                 +" "+sq.getCoverageInfoByColorForLevel(BLACK, 2));
 
         // distance info for alle pieces in relation to this square
-        for (Iterator<ChessPiece> it = board.getPiecesIterator(); it.hasNext(); ) {
-            ChessPiece p = it.next();
+        board.getPieces().forEach(p -> {
             if (p != null) {
                 int pID = p.id();
                 int distance = sq.getDistanceToPieceId(pID);
 
-                if (distance<board.getMAX_INTERESTING_NROF_HOPS())
-                    squareInfo.put("z " + p + " ("+pID+") Distance: ",
-                                "" + ( false ? -distance : distance )
-                                + " (" + sq.getDistanceToPieceId(pID)
+                if (distance < board.getMAX_INTERESTING_NROF_HOPS())
+                    squareInfo.put("z " + p + " (" + pID + ") Distance: ",
+                            "" + (false ? -distance : distance)
+                                    + " (" + sq.getDistanceToPieceId(pID)
                     );
             }
-        }
+        });
         return squareInfo;
     }
 }

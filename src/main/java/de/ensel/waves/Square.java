@@ -64,6 +64,10 @@ public class Square {
         return myPieceID() == NO_PIECE_ID;
     }
 
+    public boolean isEmptyAfter(VBoardInterface bc) {
+        return bc.isSquareEmpty(pos());
+    }
+
     int myPieceType() {
         if (isEmpty())
             return EMPTY;
@@ -77,7 +81,7 @@ public class Square {
     }
 
     public boolean walkable4king(final int kingColor) {
-        int acol = opponentColorIndex(kingColor);
+        int acol = opponentColor(kingColor);
         return true; //TODO
 //        return (!extraCoverageOfKingPinnedPiece(acol))
 //                && countDirectAttacksWithout2ndRowWithColor(acol) == 0  // no really direct attacks
@@ -104,6 +108,11 @@ public class Square {
     public boolean hasPieceOfColor(int color) {
         return board.hasPieceOfColorAt(color, pos());
     }
+
+    public boolean hasPieceOfColorAfter(int color, VBoardInterface bc) {
+        return bc.hasPieceOfColorAt(color, pos());
+    }
+
 
 
     //// getter
@@ -213,7 +222,6 @@ public class Square {
     public Stream<Move> getSingleMovesSlidingOverHere() {
         return depMovesOver.stream().filter(move -> move.from() == move.piece().pos());
     }
-
 
 //    /**
 //     * ! result is no copy, keep unmodified

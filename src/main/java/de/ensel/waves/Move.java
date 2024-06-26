@@ -26,12 +26,14 @@ import static de.ensel.chessbasics.ChessBasics.*;
  *  Store and handles conditions, obstacles and consequences: i.e. which other moves are required to enable this move,
  *  which ones can block or delay this move and the other way round, which ones are enabled or blocked/delayed.
  */
-public class Move {
+public class Move implements Comparable<Move> {
     private ChessPiece myPiece;
     private Square fromSq;
+
     private Square toSq;
     private int promotesTo;
     private boolean isCheckGiving = false;
+
     private Square[] intermedSqs;
     private Evaluation eval = new Evaluation();
 
@@ -54,13 +56,15 @@ public class Move {
         this.intermedSqs = intermedSqs;
     }
 
-//    public Move(Move origin) {
-//        this.fromSq = origin.fromSq;
-//        this.toSq = origin.toSq;
-//        this.promotesTo = origin.promotesTo;
-//        this.isCheckGiving = origin.isCheckGiving;
-//        this.eval = origin.eval;
-//    }
+    public Move(Move origin) {
+        this.myPiece = origin.myPiece;
+        this.fromSq = origin.fromSq;
+        this.toSq = origin.toSq;
+        this.promotesTo = origin.promotesTo;
+        this.isCheckGiving = origin.isCheckGiving;
+        this.eval = origin.eval;
+        this.intermedSqs = origin.intermedSqs;
+    }
 
 
     //// handling evaluations
@@ -76,8 +80,9 @@ public class Move {
     }
 
 
-    void addEval(Evaluation addEval) {
+    Move addEval(Evaluation addEval) {
         eval.addEval(addEval);
+        return this;
     }
 
     void addEvalAt(int eval, int futureLevel) {
@@ -96,7 +101,7 @@ public class Move {
         eval.maxEvalPerFutureLevelFor(meval, color);
     }
 
-    boolean isBetterForColorThan(boolean color, Move other) {
+    boolean isBetterForColorThan(final int color, final Move other) {
         boolean probablyBetter = eval.isBetterForColorThan( color, other.getEval());
         return probablyBetter;
     }
@@ -113,8 +118,9 @@ public class Move {
      */
     static boolean addMoveToSortedListOfCol(Move evMove,
                                             List<Move> sortedTopMoves,
-                                            boolean color, int maxTopEntries,
+                                            int color, int maxTopEntries,
                                             List<Move> restMoves) {
+        // todo: do at least a binary search, not one by one through the top list
         int i;
         for (i = sortedTopMoves.size() - 1; i >= 0; i--) {
             if (!evMove.isBetterForColorThan(color, sortedTopMoves.get(i))) {
@@ -140,6 +146,71 @@ public class Move {
     }
 
 
+    /**
+    static boolean updateMoveToSortedListOfCol(Move evMove,
+                                            List<Move> sortedTopMoves,
+                                            int color, int maxTopEntries,
+                                            List<Move> restMoves) {
+        // todo: do at least a binary search, not one by one through the top list
+        // todo: get rid of code duplication right before at return false&true...
+        int i;
+        boolean oldIsRemoved = false;
+        for (i = sortedTopMoves.size() - 1; i >= 0; i--) {
+            if (evMove.equals(sortedTopMoves.get(i))) {
+                // found original move, remove it
+                sortedTopMoves.remove(i);
+                oldIsRemoved = true;
+            }
+            if (!evMove.isBetterForColorThan(color, sortedTopMoves.get(i))) {
+                // not better, but it was better than the previous, so add below
+                if (i < maxTopEntries)
+                    sortedTopMoves.add(i + 1, evMove);
+                // look through rest of top-list
+                for (int j = i-1; j >= 0; j--) {
+                    if (evMove.equals(sortedTopMoves.get(j))) {
+                        // found original move, remove it
+                        sortedTopMoves.remove(j);
+                        oldIsRemoved = true;
+                        break;
+                    }
+                }
+                if (!oldIsRemoved) {
+                    // it must be in the rest list
+                    for (int j = 0; j < restMoves.size(); j++) {
+                        if (evMove.equals(restMoves.get(j))) {
+                            restMoves.remove(j);
+                            break;
+                        }
+                    }
+                }
+                // move lower rest if top list became too big
+                while (sortedTopMoves.size() > maxTopEntries) {
+                    restMoves.add(
+                            sortedTopMoves.remove(maxTopEntries) );
+                }
+                return false;
+            }
+        }
+        //it was best!!
+        sortedTopMoves.add(0, evMove);
+        if (!oldIsRemoved) {
+            // it must be in the rest list
+            for (int j = 0; j < restMoves.size(); j++) {
+                if (evMove.equals(restMoves.get(j))) {
+                    restMoves.remove(j);
+                    break;
+                }
+            }
+        }
+        // move lower rest if top list became too big
+        while (sortedTopMoves.size() > maxTopEntries) {
+            restMoves.add(
+                    sortedTopMoves.remove(maxTopEntries) );
+        }
+        return true;
+    }
+**/
+
     //// Overrides
 
     @Override
@@ -148,12 +219,12 @@ public class Move {
                 fromSq.toString()
             // for debugging only    + (isBasicallyALegalMove() ? "" : "'")
                 + toSq.toString()
-                + ( promotesTo!=EMPTY  ? Character.toLowerCase(fenCharFromPceType(promotesTo)) : "")
-                + "->" + eval.toString();
+                + ( promotesTo!=EMPTY  ? Character.toLowerCase(fenCharFromPceType(promotesTo)) : "");
+               // + "->" + eval.toString();
     }
 
     /**
-     * std.equals(), hint: does not compare isLegal flag
+     * std.equals(), hint: does not compare evaluation!
      * @param o other move to compare with
      * @return true if members from, to and promotesTo are equal, false otherwise
      */
@@ -218,6 +289,19 @@ public class Move {
         return myPiece;
     }
 
+    public Square fromSq() {
+        return fromSq;
+    }
+
+    public Square toSq() {
+        return toSq;
+    }
+
+    public Square[] intermedSqs() {
+        return intermedSqs;
+    }
+
+
     //// setter
 
     public void setPromotesTo(int pceType) {
@@ -228,47 +312,50 @@ public class Move {
         isCheckGiving = true;
     }
 
-    public void setEval(Evaluation eval) {
+    public Move setEval(Evaluation eval) {
         this.eval = eval;
+        return this;
     }
 
     public boolean isALegalMoveNow() {
-        return !isBlockedByKingPin() && isASingleMoveNow();
+        return isALegalMoveAfter(piece().board().NOCHANGE);
     }
 
-    private boolean isBlockedByKingPin() {
+    public boolean isALegalMoveAfter(VBoardInterface bc) {
+        return piece().posAfter(bc) == from()  // piece is still here
+                && !isBlockedByKingPin(bc)
+                && myPiece.isADirectMoveAfter(this, bc);
+    }
+
+    private boolean isBlockedByKingPin(VBoardInterface bc) {
         //TODO
         return false;
     }
 
-    public boolean isASingleMoveNow() {
-        assert( myPiece.id() == fromSq.myPieceID() );  // mov must be starting at my real piece
-        if (toSq.hasPieceOfColor(myPiece.color()))
-            return false; // target already occupied
-        // loop over all intermediate Sqs, if they are free
-        for (Square iSq : intermedSqs) {
-            if (!iSq.isEmpty())
-                return false;
-        }
-        return true;
-    }
-
-    public Evaluation getMoveEvaluation() {
-        if (!piece().board().hasPieceOfColorAt(opponentColorIndex(piece().color()), to()) || !isASingleMoveNow())
+    public Evaluation getSimpleMoveEval() {
+        if (!piece().board().hasPieceOfColorAt(opponentColor(piece().color()), to()) || !myPiece.isADirectMoveAfter(this, piece().board().NOCHANGE))
             return new Evaluation();
         return new Evaluation(-piece().board().getPieceAt(to()).getValue(), 0);
     }
 
-    public Evaluation getMoveEvaluation(List<Move> moveContext) {
-        // TODO: consider context of already done moves! really check who is now left there.
-        // This is just an incomplete first implementation working for 1-move contexts!:
-        // if (any of) the moves has taken my piece or moved away as a target, then 0
-        for (Move m : moveContext) {
-            if (m.from() == toSq.pos() && m.to() == fromSq.pos())
-                return new Evaluation();
-        }
-        // if my target has moved away, then diminish eval by the taken piece, but also needs to check if I now get beaten there (or may be not, as this is a later step...)
-        return getMoveEvaluation();
+    public Evaluation getSimpleMoveEvalAfter(VBoardInterface bc) {
+        assert (isALegalMoveAfter(bc));
+        // consider context of already done moves.
+       ChessPiece capturedPiece = bc.getPieceAt(to());
+       if (capturedPiece == null)
+           return new Evaluation();
+       return new Evaluation(-capturedPiece.getValue(), 0);  // bc.futureLevel());
     }
+
+    @Override
+    public int compareTo(Move other) {
+        //return Integer.compare(this.eval.getScore(), other.eval.getScore());
+        if ( isBetterForColorThan(piece().color(), other) )
+            return 1;
+        if ( other.isBetterForColorThan(piece().color(), this) )
+            return -1;
+        return 0;
+    }
+
 }
 

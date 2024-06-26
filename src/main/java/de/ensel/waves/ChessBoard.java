@@ -19,14 +19,19 @@
 package de.ensel.waves;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 import static de.ensel.chessbasics.ChessBasics.*;
+import static de.ensel.waves.Move.addMoveToSortedListOfCol;
 import static de.ensel.waves.SimpleMove.getMoves;
 import static java.lang.Math.*;
 import static java.text.MessageFormat.format;
 
-public class ChessBoard {
+public class ChessBoard implements VBoardInterface {
     public static final ResourceBundle chessBoardRes = ResourceBundle.getBundle("de.ensel.chessboardres");
+    public static final int SEARCH_MAXDEPTH = 10;
+
+    final VBoard NOCHANGE = new VBoard(this);  // the empty change - for reuse...
 
     /**
      * configure here which debug messages should be printed
@@ -60,14 +65,14 @@ public class ChessBoard {
     private int repetitions;
 
     private Square[] boardSquares;
-    String fenPosAndMoves;
+    private String fenPosAndMoves;
 
     private static int engineP1 = 0;  // engine option - used at varying places for optimization purposes.
 
     /**
      * keep all Pieces on Board
      */
-    ChessPiece[] piecesOnBoard;
+    private ChessPiece[] piecesOnBoard;
     private int nextFreePceID;
     public static final int NO_PIECE_ID = -1;
 
@@ -79,7 +84,7 @@ public class ChessBoard {
 
     private int turn;  // colorIndex of who's turn it is now
     private int fullMoves;
-    int countBoringMoves;
+    private int countBoringMoves;
 
     private StringBuffer boardName;
 
@@ -159,19 +164,28 @@ public class ChessBoard {
      * @param pos board position
      * @return returns ChessPiece or null if quare is empty
      */
-    ChessPiece getPieceAt(int pos) {
+    @Override
+    public ChessPiece getPieceAt(int pos) {
         int pceID = getPieceIdAt(pos);
         if (pceID == NO_PIECE_ID)
             return null;
         return piecesOnBoard[pceID];
     }
 
-    public int getPieceIdAt(int pos) {
+    @Override
+    public int getPiecePos(ChessPiece pce) {
+        return pce.pos();
+        // note: looks a bit strange, but is due to the fact that the newer VBoardInterface is not Id-Based,
+        // but the older CHessBoard is.
+    }
+
+    int getPieceIdAt(int pos) {
         return boardSquares[pos].myPieceID();
     }
 
-    boolean hasPieceOfColorAt(int color, int pos) {
-        if (boardSquares[pos].myPieceID() == NO_PIECE_ID || getPieceAt(pos) == null)   // Todo-Option:  use assert(getPiecePos!=null)
+    @Override
+    public boolean hasPieceOfColorAt(int color, int pos) {
+        if (boardSquares[pos].isEmpty() || getPieceAt(pos) == null)   // Todo-Option:  use assert(getPiecePos!=null)
             return false;
         return (getPieceAt(pos).color() == color);
     }
@@ -183,6 +197,7 @@ public class ChessBoard {
             return distanceBetween(pos, blackKingPos);
     }
 
+    @Override
     public boolean isCheck(int color) {
         return nrOfChecks(color) > 0;
     }
@@ -192,7 +207,7 @@ public class ChessBoard {
         if (kingPos < 0)
             return 0;  // king does not exist... should not happen, but is part of some test-positions
         Square kingSquare = getSquare(kingPos);
-        return kingSquare.countDirectAttacksWithout2ndRowWithColor(opponentColorIndex(color));
+        return kingSquare.countDirectAttacksWithout2ndRowWithColor(opponentColor(color));
     }
 
     /////
@@ -323,7 +338,7 @@ public class ChessBoard {
             int kingpos = getKingPos(color);
             if (kingpos < 0)
                 continue;          // in some test-cases boards without kings are used, so skip this (instead of error/abort)
-            List<ChessPiece> attackers = getSquare(kingpos).directAttackersWithout2ndRowWithColor(opponentColorIndex(color));
+            List<ChessPiece> attackers = getSquare(kingpos).directAttackersWithout2ndRowWithColor(opponentColor(color));
             for (ChessPiece a : attackers) {
                 for (int pos : a.allPosOnWayTo(kingpos))
                     boardSquares[pos].setBlocksCheckFor(color);
@@ -695,40 +710,58 @@ public class ChessBoard {
         Arrays.fill(bestOpponentEval, -lowest);
         Arrays.fill(nrOfLegalMoves, 0);
 
+        //System.err.println("Getting best move for: " + board.toString());
         // Compare all moves returned by all my pieces and find the best.
-        List<Move> bestOpponentMoves = getBestMoveForColWhileAvoiding( opponentColorIndex(getTurnCol()), null);
-        List<Move> bestMovesSoFar    = getBestMoveForColWhileAvoiding( getTurnCol(), bestOpponentMoves);
+        //Stream<Move> bestOpponentMoves = getBestMovesForColAfter( opponentColor(getTurnCol()), NOCHANGE );
+        countCalculatedBoards = 0;
+        Stream<Move> bestMoves    = getBestMovesForColAfter( getTurnCol(), NOCHANGE );
+        bestMove = bestMoves.findFirst().orElse(null);
+        //System.err.println("  --> " + bestMove );
         if (DEBUGMSG_MOVESELECTION) {
-            debugPrintln(DEBUGMSG_MOVESELECTION, "=> My best move: "+ bestMovesSoFar+".");
-            debugPrintln(DEBUGMSG_MOVESELECTION, "(opponents best moves: " + bestOpponentMoves + ").");
+            debugPrintln(DEBUGMSG_MOVESELECTION, "=> My best move (after looking at " + countCalculatedBoards
+                    + " positions): "+ bestMove +".");
+            //debugPrintln(DEBUGMSG_MOVESELECTION, "(opponents best moves: " + bestOpponentMoves.findFirst().orElse(null) + ").");
         }
-        bestMove = bestMovesSoFar.size()>0 ?bestMovesSoFar.get(0) : null;
         checkAndEvaluateGameOver();
     }
 
-    private List<Move> getBestMoveForColWhileAvoiding(final int color, final List<Move> bestOpponentMoves) {
-        final int maxBestMoves = color==getTurnCol() ? 5 : 20;
+    int countCalculatedBoards;
+    Stream<Move> getBestMovesForColAfter(final int color, VBoardInterface upToNowBoard) {
+        final int maxBestMoves = 20;  // only the top moves are sorted
+        List<Move> bestMoveCandidates = new ArrayList<>(maxBestMoves*2);
         List<Move> bestMoves = new ArrayList<>(maxBestMoves);
-        List<Move> restMoves = new ArrayList<>(maxBestMoves);
-        nrOfLegalMoves[color] = 0;
-        for (ChessPiece p : piecesOnBoard) {
-            if (p != null && p.color() == color) {
-//                for (Move pMove : p.getBestMoves()) {
-//                    //TODO
-//                    addMoveToSortedListOfCol(pMove, bestMoves, color, maxBestMoves, restMoves);
-//                }
+        List<Move> restMoves = new ArrayList<>();
+        //nrOfLegalMoves[color] = 0;
+        upToNowBoard.getPieces()
+                .filter(p -> p.color() == color)
+                .forEach( p -> {
+                    p.legalMovesAfter(upToNowBoard).forEach( move -> {
+                        Move evaluatedMove = p.getEvaluatedMoveToAfter(move, upToNowBoard);
+                        addMoveToSortedListOfCol(evaluatedMove, bestMoveCandidates, color, maxBestMoves*2, restMoves);
+                        countCalculatedBoards++;
+                    });
+                });
+        // reevaluate moves by  move simulation
+        if (upToNowBoard.futureLevel() < SEARCH_MAXDEPTH-1) {
+            for (Move move : bestMoveCandidates) {
+                if (move != null) {
+                    if ( abs(move.getEval().getEvalAt(0)) >= 3
+                         || (upToNowBoard.futureLevel() <= 0 && abs(move.getEval().getEvalAt(1)) >= 6) ) {
+                        VBoard nextBoard = VBoard.createNext(upToNowBoard, move);
+                        Move bestOppMove = getBestMovesForColAfter(opponentColor(color), nextBoard)
+                                .findFirst().orElse(null);
+                        if (bestOppMove != null) {
+                            move.addEval(bestOppMove.getEval());
+                            move.getEval().setReason(bestOppMove.getEval().getReason());
+                            if (DEBUGMSG_MOVESELECTION && upToNowBoard.futureLevel() == 0)
+                                debugPrintln(DEBUGMSG_MOVESELECTION, "Reevaluated " + move + " to " + move.getEval());
+                        }
+                    }
+                    addMoveToSortedListOfCol(move, bestMoves, color, maxBestMoves, restMoves);
+                }
             }
         }
-        // after the best moves run again with the rest of the moves - just to be sure to not overlook something
-        for (ChessPiece p : piecesOnBoard) {
-            if (p != null && p.color() == color) {
-//                for (Move pMove : p.getEvaluatedRestMoves()) {
-//                    //TODO
-//                    addMoveToSortedListOfCol(pMove, bestMoves, col, maxBestMoves, restMoves);
-//                }
-            }
-        }
-        return bestMoves;
+        return Stream.concat( bestMoves.stream(), restMoves.stream());
     }
 
     boolean doMove (SimpleMove m) {
@@ -748,7 +781,7 @@ public class ChessBoard {
             internalErrorPrintln(String.format("Fehlerhafter Zug: auf %s steht keine Figur auf Board %s.\n", squareName(frompos), getBoardFEN()));
             return false;
         }
-        if (boardSquares[topos].canMoveHere(pceID)
+        if (!boardSquares[topos].canMoveHere(pceID)
                 && colorlessPieceType(pceType) != KING) { // || figuresOnBoard[frompos].getColor()!=turn  ) {
             // TODO: check king for allowed moves... excluded here, because castling is not obeyed in distance calculation, yet.
             internalErrorPrintln(String.format("Fehlerhafter Zug: %s -> %s nicht möglich auf Board %s.\n", squareName(frompos), squareName(topos), getBoardFEN()));
@@ -976,7 +1009,7 @@ public class ChessBoard {
             promoteToPceType = 0;
         }
 
-        turn = opponentColorIndex(turn);
+        turn = opponentColor(turn);
         if (isWhite(turn))
             fullMoves++;
 
@@ -1121,7 +1154,7 @@ public class ChessBoard {
             if ((isBlack(getTurnCol()) && isFirstRank(m.to())
                     || isWhite(getTurnCol()) && isLastRank(m.to()))) {
                 char promoteToChar = move.length() > promcharpos ? move.charAt(promcharpos) : 'q';
-                if (promoteToChar == '=') // some notations use a1=Q isntead of a1Q
+                if (promoteToChar == '=') // some notations use a1=Q instead of a1Q
                     promoteToChar = move.length() > promcharpos + 1 ? move.charAt(promcharpos + 1) : 'q';
                 m.setPromotesTo(getPceTypeFromPromoteChar(promoteToChar));
             }
@@ -1287,6 +1320,7 @@ public class ChessBoard {
         completeCalc();
     }
 
+    @Override
     public boolean isSquareEmpty(final int pos){
         return (boardSquares[pos].isEmpty());
     }
@@ -1328,8 +1362,9 @@ public class ChessBoard {
         return res;
     }
 
-    public Iterator<ChessPiece> getPiecesIterator() {
-        return Arrays.stream(piecesOnBoard).iterator();
+    @Override
+    public Stream<ChessPiece> getPieces() {
+        return Arrays.stream(piecesOnBoard).filter(Objects::nonNull);
     }
 
     // virtual non-linear, but continuously increasing "clock" used to remember update-"time"s and check if information is outdated
@@ -1396,7 +1431,7 @@ public class ChessBoard {
      * returns how many times the position reached by a move has been there before
      */
     int moveLeadsToRepetitionNr(int frompos, int topos) {
-        int color = opponentColorIndex(getTurnCol());
+        int color = opponentColor(getTurnCol());
         long resultingHash = calcBoardHashAfterMove(frompos,topos);
         return countHashOccurrencesForColor(resultingHash, color)+1;
     }
@@ -1448,12 +1483,12 @@ public class ChessBoard {
     private void updateHashWithMove(final int frompos, final int topos) {
         boardHash = calcBoardHashAfterMove(frompos, topos);
         // add Hash To History
-        int nextci = opponentColorIndex(getTurnCol());
+        int nextci = opponentColor(getTurnCol());
         boardHashHistory.get( nextci ).add(getBoardHash());
         repetitions = countHashOccurrencesForColor(boardHash, nextci ) - 1;
     }
 
-    public long rawUpdateAHash(long hash, int pceType, int pos) {
+    static public long rawUpdateAHash(long hash, int pceType, int pos) {
         if (((long)pceType) != 0)
             hash ^= randomSquareValues[pos] * ((long)pceType);
         return hash;
@@ -1484,8 +1519,14 @@ public class ChessBoard {
         return countPawnsInFile[color][file];
     }
 
+    @Override
     public boolean isGameOver() {
         return gameOver;
+    }
+
+    @Override
+    public int futureLevel() {
+        return 0;
     }
 
     public int nrOfLegalMoves(int color){

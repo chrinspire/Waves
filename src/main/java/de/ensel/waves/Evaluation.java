@@ -30,8 +30,9 @@ import static java.lang.Math.abs;
  * perspective for [now, in one move, in 2 moves,...] called future levels.
  */
 public class Evaluation {
-    public static final int MAX_EVALDEPTH = ChessBoard.MAX_INTERESTING_NROF_HOPS + 1;
+    public static final int MAX_EVALDEPTH = 8;
     private int[] rawEval;
+    private String reason = null;
 
     //// Constructors
     public Evaluation() {
@@ -64,11 +65,11 @@ public class Evaluation {
 
 
     ////
-    boolean isGoodForColor(boolean color) {
+    boolean isGoodForColor(int color) {
         return isBetterForColorThan(color, new Evaluation().setEval(-1,0));
     }
 
-    boolean isBetterForColorThan(boolean color, Evaluation oEval) {
+    boolean isBetterForColorThan(int color, Evaluation oEval) {
         int i = 0;
         //if (DEBUGMSG_MOVESELECTION)
         //    debugPrint(DEBUGMSG_MOVESELECTION, "  comparing move eval " + this + " at "+i + " with " + oEval +": ");
@@ -168,7 +169,7 @@ public class Evaluation {
         return this;
     }
 
-    public Evaluation maxEvalFor(Evaluation meval, boolean color) {
+    public Evaluation maxEvalFor(Evaluation meval, int color) {
         if (meval.isBetterForColorThan(color,this)) {
             copy(meval);
         }
@@ -287,11 +288,25 @@ public class Evaluation {
                 }
             }
         }
+        StringBuilder result = new StringBuilder();
         if (firstEntry == -1)
-            return "" + Arrays.toString(rawEval);
-        if (firstEntry == MAX_EVALDEPTH)
-            return "[]";
-        return "["+rawEval[firstEntry]+"@"+firstEntry+"]";
+            result.append(Arrays.toString(rawEval));
+        else if (firstEntry == MAX_EVALDEPTH) {
+            if (reason != null)
+                result.append("[]");
+        }
+        else {
+            result.append("[");
+            result.append(rawEval[firstEntry]);
+            result.append("@");
+            result.append(firstEntry);
+            result.append("]");
+        }
+        if (reason != null) {
+            result.append("!");
+            result.append(reason);
+        }
+        return result.toString();
     }
 
     @Override
@@ -307,4 +322,11 @@ public class Evaluation {
         return Arrays.hashCode(getRawEval());
     }
 
+    public void setReason(String reason) {
+        this.reason = reason;
+    }
+
+    public String getReason() {
+        return reason;
+    }
 }

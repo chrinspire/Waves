@@ -6,7 +6,7 @@
 
     <groupId>de.ensel</groupId>
     <artifactId>waves</artifactId>
-    <version>0.0.1b</version>
+    <version>0.0.2</version>
 
     <properties>
         <maven.compiler.source>18</maven.compiler.source>
