@@ -243,7 +243,7 @@ class ChessPieceTest {
 
         assertCannotMoveToAfter(p1, p2Pos, fb);
         assertCannotMoveToAfter(p2, p1Pos, fb);
-        assertEval4MoveToAfter(p2, p3Pos, -p3.getValue(), fb);
+        assertEval4MoveToAfter(p2, p3Pos, 0, fb);  // now "0" after evaluation learned about simple recaptures. was: -p3.getValue(), fb);
         assertCannotMoveToAfter(p1, p3Pos, fb);
 
         // additional test with two moves

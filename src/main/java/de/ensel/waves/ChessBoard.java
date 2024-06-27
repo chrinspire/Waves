@@ -776,10 +776,12 @@ public class ChessBoard implements VBoardInterface {
         // reevaluate moves by move simulation
         for (Move move : bestMoveCandidates) {
             if (!alphabetabreak[0]) {
-                if (abs(move.getEval().getEvalAt(0)) >= 3
-                        || abs(move.getEval().getEvalAt(2)) >= 6
-                        || (upToNowBoard.futureLevel() <= 0   // deep dive also for more opponent moves?
-                        && abs(move.getEval().getEvalAt(1)) >= 6)
+                if ( abs(move.getEval().getEvalAt(0)) >= 3  // capturing moves
+                        || upToNowBoard.futureLevel() == 0            // all my first moves
+                        || (upToNowBoard.futureLevel() <= 4           // or early moves have a good followup
+                            && abs(move.getEval().getEvalAt(2)) >= 6)
+                        || (upToNowBoard.futureLevel() <= -1          // deep dive also for more opponent moves?
+                            && abs(move.getEval().getEvalAt(1)) >= 6)
                 ) {
                     VBoard nextBoard = VBoard.createNext(upToNowBoard, move);
                     Move bestOppMove = getBestMovesForColAfter(opponentColor(color), engParams, nextBoard, alpha, beta)

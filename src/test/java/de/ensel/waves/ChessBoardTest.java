@@ -132,20 +132,27 @@ class ChessBoardTest {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", false);
     }
 
-
-
-    // choose the one best move
+    // choose the one best move in very simple scenarios
     @ParameterizedTest
     @CsvSource({
-            //simple ones
-            "8/8/2R5/8/8/8/2r5/8 w - - 0 1, c6c2"           // R takes
-            ,"8/8/2R5/8/8/8/2r5/8 b - - 0 1, c2c6"          // r takes
-            ,"8/8/6B1/8/8/8/2r5/8 w - - 0 1, g6c2"          // B takes
-            ,"8/8/2B3B1/8/8/8/2r5/8 b - - 0 1, c2c6"        // r flees and takes
-            ,"8/5k2/2R3r1/3K4/8/8/6R1/8 b - - 0 1, g6g2"    // r needs to take the right (uncovered) R
-            ,"5k2/8/3r2q1/8/1R6/P7/1P2r1R1/K7 w - - 0 1, g2e2"      // take q and lose R? better take r (+#)
+        //simple ones
+        "8/8/2R5/8/8/8/2r5/8 w - - 0 1, c6c2"           // R takes
+        ,"8/8/2R5/8/8/8/2r5/8 b - - 0 1, c2c6"          // r takes
+        ,"8/8/6B1/8/8/8/2r5/8 w - - 0 1, g6c2"          // B takes
+        ,"8/8/2B3B1/8/8/8/2r5/8 b - - 0 1, c2c6"        // r flees and takes
+        ,"8/5k2/2R3r1/3K4/8/8/6R1/8 b - - 0 1, g6g2"    // r needs to take the right (uncovered) R
+        ,"5k2/8/3r2q1/8/1R6/P7/1P2r1R1/K7 w - - 0 1, g2e2"      // take q and lose R? better take r (+#)
     })
     void ChessBoardGetBestMove_Basics_Test(String fen, String expectedBestMove) {
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", false);
+    }
+
+    // choose the one best move in very simple scenarios
+    @ParameterizedTest
+    @CsvSource({
+        "r1bqkbnr/1ppppppp/p1n5/3N4/1P1PPB2/P7/2P2PPP/R2QKBNR b KQk - 1 7, d7d6"  // need to block an attacked piece (where is a fork at the same time)
+    })
+    void ChessBoardGetBestMove_moreComplex_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
     }
 
