@@ -176,6 +176,8 @@ public class ChessPiece {
 
         // basic evaluation
         final Evaluation eval = move2Bevaluated.getSimpleMoveEvalAfter(fb);
+        if (SHOW_REASONS && !eval.isAboutZero())
+            eval.addReason("direct_effect:" + eval);
 
         // a) include moves that now can take this piece at the toPos
         Square toSq = board.getSquare(move2Bevaluated.to());
@@ -191,16 +193,17 @@ public class ChessPiece {
                 System.out.println("Capturing at toPos seems possible, changing eval by " + oppFUpEval + ".");
             eval.addEval(oppFUpEval);
             if (SHOW_REASONS)
-                eval.addReason("<"+fbAfter+"> "+"x"+toSq);
+                eval.addReason(/*"<"+fbAfter+">*/ "likely_being_captured_"+toSq+":"+oppFUpEval);
         } else if (oppFUpEval != null) {
             if (DEBUGMSG_MOVEEVAL)
                 System.out.println("Capturing at "+toSq+" seems not reasonable for opponent.");
-            if (SHOW_REASONS)
-                eval.addReason("<"+fbAfter+">");
-        } else if (SHOW_REASONS)
-            eval.addReason("<"+fbAfter+">");
+//            if (SHOW_REASONS)
+//                eval.addReason("<"+fbAfter+">");
+        }
+//        else if (SHOW_REASONS)
+//            eval.addReason("<"+fbAfter+">");
 
-        // b) change move evals that would have taken this piece here
+        // b) counter effects of moves (resp. just of one move) that would have taken this piece here
             // Note: If enabling all captures is necessary (for further simulation), then taking the cheapest is not sufficient
             //       It then needs something like back to the prev. code :-)
             //        fromSq.getSingleMovesToHere()
@@ -213,14 +216,18 @@ public class ChessPiece {
         Square fromSq = board.getSquare(move2Bevaluated.from());
         ChessPiece cheapestFromPosAttacker = fromSq.cheapestAttackersOfColorToHereAfter(opponentColor(color()), fb);
         if (cheapestFromPosAttacker != null) {
-            Move disabledCapture = cheapestFromPosAttacker.getDirectMoveAfter(move2Bevaluated.from(), fbAfter);
+            Move disabledCapture = cheapestFromPosAttacker.getDirectMoveAfter(move2Bevaluated.from(), fb);
             if (disabledCapture != null) {
-                eval.subtractEval(disabledCapture.getSimpleMoveEvalAfter(fb));  // undo old evaluation
-                //eval.addEval(disabledCapture.getSimpleMoveEvalAfter(fbAfter));     // instead add new one - should be 0 - and is also not always legal (for pawns)
-                if (DEBUGMSG_MOVEEVAL)
-                    System.out.println("Fleeing from capture at fromPos " + disabledCapture + " changes eval to " + eval + ".");
-                if (SHOW_REASONS)
-                    eval.addReason("avoiding2Bcaptured by "+disabledCapture);
+                Evaluation disabledCaptureEval = disabledCapture.getSimpleMoveEvalAfter(fb);
+                if (!disabledCaptureEval.isAboutZero()) {
+                    disabledCaptureEval.timeWarp(+1);  // capturing if do not move is an opponents move coming (potentially) after my moves
+                    eval.subtractEval(disabledCaptureEval);  // undo old evaluation
+                    //eval.addEval(disabledCapture.getSimpleMoveEvalAfter(fbAfter));     // instead add new one - should be 0 - and is also not always legal (for pawns)
+                    if (DEBUGMSG_MOVEEVAL)
+                        System.out.println("Fleeing from capture at fromPos " + disabledCapture + " changes eval to " + eval + ".");
+                    if (SHOW_REASONS)
+                        eval.addReason("avoiding_capture_by_" + disabledCapture + ":" + disabledCaptureEval);
+                }
             }
         }
 
@@ -232,7 +239,7 @@ public class ChessPiece {
                     Evaluation enabledEval = getMoveEvalInclFollowUpAfter(move,fbAfter);
                     if (enabledEval.isGoodForColor(move.piece().color())) {
                         if (SHOW_REASONS)
-                            eval.addReason("enabling " + move + getMoveEvalInclFollowUpAfter(move, fbAfter));
+                            eval.addReason("enabling_" + move + getMoveEvalInclFollowUpAfter(move, fbAfter));
                         if (DEBUGMSG_MOVEEVAL)
                             System.out.println("Enabling " + move + " sliding over " + move2Bevaluated.fromSq()
                                     + " -> adding " + enabledEval);
@@ -253,7 +260,7 @@ public class ChessPiece {
                     e.timeWarp(+1);
                     eval.addEval(e);        // but possible in the future
                     if (SHOW_REASONS)
-                        eval.addReason(" blocking "+move+e);
+                        eval.addReason("blocking_"+move+e);
                     if (DEBUGMSG_MOVEEVAL)
                         System.out.println("blocking " + move + " leads to " + eval + ".");
                 });
@@ -273,21 +280,24 @@ public class ChessPiece {
             }
             if (bestDirectFollowUpMove != null && !bestDirectFollowUpMove.getEval().isAboutZero() ) {
                 if (SHOW_REASONS)
-                    eval.addReason("+threat:" + bestDirectFollowUpMove + nextBestEval);
+                    eval.addReason("threatening_" + bestDirectFollowUpMove + ":" + nextBestEval);
                 if (DEBUGMSG_MOVEEVAL)
                     System.out.println("+threatening " + bestDirectFollowUpMove + nextBestEval);
             }
 
             // f) see what this piece can cover from here - should be calculated by the bigger recursion, however,
-            // a seemingly boring moves (because covering is not counted) would never make it into the recursion
-            Evaluation fUDefenceEval = getBestDefenceEvalAfter(fb, fbAfter);;
-            if (fUDefenceEval != null) {
-                fUDefenceEval.timeWarp(+2);
-                eval.addEval(fUDefenceEval);        // but possible in the future
-                if (SHOW_REASONS)
-                    eval.addReason("+defending:" + fUDefenceEval);
-                if (DEBUGMSG_MOVEEVAL)
-                    System.out.println("+threatening " + fUDefenceEval);
+            // seemingly boring moves (if covering counts as 0) would then never make it into the recursion
+            Move fUDefenceMove = getBestDefenceEvalAfter(fb, fbAfter);
+            if (fUDefenceMove != null) {
+                Evaluation fUDefenceEval = fUDefenceMove.getEval();
+                if (fUDefenceEval != null) {
+                    fUDefenceEval.timeWarp(+2);
+                    eval.addEval(fUDefenceEval);        // but possible in the future
+                    if (SHOW_REASONS)
+                        eval.addReason("defending_" + fUDefenceMove + ":" + fUDefenceEval);
+                    if (DEBUGMSG_MOVEEVAL)
+                        System.out.println("+defending " + fUDefenceMove + ":" + fUDefenceEval);
+                }
             }
         }
 
@@ -367,10 +377,13 @@ public class ChessPiece {
         return bestFollowUpMove;
     }
 
-    private Evaluation getBestDefenceEvalAfter(VBoardInterface  fb, VBoardInterface fbAfter) {
-        Evaluation bestDefence = null;
+    private Move getBestDefenceEvalAfter(VBoardInterface  fb, VBoardInterface fbAfter) {
+        Evaluation bestDefenceEval = null;
+        Move bestDefenceMove = null;
         for (Iterator<Move> it = coveringMovesAfter(fbAfter).iterator(); it.hasNext(); ) {
             Move move = it.next();
+            if (move.to() == posAfter(fb))
+                continue;; // I was not covering myself before the move and I will not do so after the move...
             Evaluation evalBefore = getFollowUpEvalAtSqAfter(move.toSq(), fb);
             if (evalBefore == null)
                 continue;  // no capturing possible, even without me...
@@ -378,11 +391,14 @@ public class ChessPiece {
             if (evalAfter == null)
                 evalAfter = new Evaluation();
             Evaluation evalDelta = evalAfter.subtractEval(evalBefore);
-            if (bestDefence == null || evalDelta.isBetterForColorThan(color(), bestDefence)) {
-                bestDefence = evalDelta;
+            if (bestDefenceEval == null || evalDelta.isBetterForColorThan(color(), bestDefenceEval)) {
+                bestDefenceEval = evalDelta;
+                bestDefenceMove = move;
             }
-        };
-        return bestDefence;
+        }
+        if (bestDefenceMove == null)
+            return null;
+        return new Move(bestDefenceMove).setEval(bestDefenceEval);
     }
 
     public Evaluation getDirectMoveToEvaluation(int to) {
@@ -465,7 +481,7 @@ public class ChessPiece {
      */
     public void die() {
         // little to clean up here...
-        myPos = -1;
+        myPos = NOWHERE;
     }
 
     //// simple info

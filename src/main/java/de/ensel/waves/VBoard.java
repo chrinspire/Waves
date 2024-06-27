@@ -124,19 +124,24 @@ public class VBoard implements VBoardInterface {
                 .map(Move::toString)
                 .collect(Collectors.joining(" ")));
         if (!capturedPieces.isEmpty()) {
-            result.append("(no:");
+            result.append(" (");
             result.append(capturedPieces.stream()
-                    .map(ChessPiece::toString)
-                    .collect(Collectors.joining(", ")));
+                    .map(p -> "x"+fenCharFromPceType(p.pieceType()) )
+                    .collect(Collectors.joining(" ")));
             result.append(")");
         }
         return result.toString();
     }
 
+    @Override
+    public boolean isCaptured(ChessPiece pce) {
+        return capturedPieces.contains(pce);
+    }
 
 
     @Override
     public int getPiecePos(ChessPiece pce) {
+        assert(!isCaptured(pce));
         // check moves backwards, if this piece has already moved
         for (int i = moves.size() - 1; i >= 0; i--) {
             if (moves.get(i).piece() == pce)

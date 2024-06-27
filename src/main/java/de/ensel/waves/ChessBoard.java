@@ -186,6 +186,11 @@ public class ChessBoard implements VBoardInterface {
     }
 
     @Override
+    public boolean isCaptured(ChessPiece pce) {
+        return pce.pos() != NOWHERE;
+    }
+
+    @Override
     public boolean hasPieceOfColorAt(int color, int pos) {
         if (boardSquares[pos].isEmpty() || getPieceAt(pos) == null)   // Todo-Option:  use assert(getPiecePos!=null)
             return false;
@@ -738,6 +743,8 @@ public class ChessBoard implements VBoardInterface {
                 .filter(p -> p.color() == color)
                 .forEach( p -> {
                     p.legalMovesAfter(upToNowBoard).forEach( move -> {
+            .filter(p -> p.color() == color
+                    && !upToNowBoard.isCaptured(p))
                         Move evaluatedMove = p.getEvaluatedMoveToAfter(move, upToNowBoard);
                         addMoveToSortedListOfCol(evaluatedMove, bestMoveCandidates, color, maxBestMoves+(maxBestMoves>>1), restMoves);
                         countCalculatedBoards++;
@@ -756,12 +763,16 @@ public class ChessBoard implements VBoardInterface {
                             .findFirst().orElse(null);
                     if (bestOppMove != null) {
                         move.addEval(bestOppMove.getEval());
-                        move.getEval().setReason(bestOppMove.getEval().getReason());
+                        move.getEval().setReason( upToNowBoard + " " + move.toString()
+                                + move.getEval() + " "
+                                + move.getEval().getReason() + " <-- "
+                                + "!{" + bestOppMove.getEval().getReason()+"} ");
                         if (DEBUGMSG_MOVESELECTION && upToNowBoard.futureLevel() == 0)
-                            debugPrintln(DEBUGMSG_MOVESELECTION, "Reevaluated " + move + " to " + move.getEval() + " reason: " + move.getEval().getReason());
+                            debugPrintln(DEBUGMSG_MOVESELECTION, "Reevaluated " /*+ move + " to " + move.getEval()
+                                    + " reason: " */ + move.getEval().getReason());
                     }
                 }
-                addMoveToSortedListOfCol(move, bestMoves, color, maxBestMoves, restMoves);
+            addMoveToSortedListOfCol(move, bestMoves, color, maxBestMoves, restMoves);
             }
         }
         return Stream.concat( bestMoves.stream(), restMoves.stream());

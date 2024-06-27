@@ -321,16 +321,20 @@ public class Move implements Comparable<Move> {
         return isALegalMoveAfter(piece().board().NOCHANGE);
     }
 
-    public boolean isALegalMoveAfter(VBoardInterface bc) {
-        return piece().posAfter(bc) == from()  // piece is still here
-                && !isBlockedByKingPin(bc)
-                && myPiece.isADirectMoveAfter(this, bc);
+    public boolean isALegalMoveAfter(VBoardInterface fb) {
+        if (fb.isCaptured(piece()))
+            return false;
+        return piece().posAfter(fb) == from()   // piece is still here
+                && !isBlockedByKingPin(fb)
+                && myPiece.isADirectMoveAfter(this, fb);
     }
 
-    public boolean isDefendingAfter(VBoardInterface bc) {
-        return piece().posAfter(bc) == from()  // piece is still here
-                && !isBlockedByKingPin(bc)
-                && myPiece.isDefendingTargetAfter(this, bc);
+    public boolean isDefendingAfter(VBoardInterface fb) {
+        if (fb.isCaptured(piece()))
+            return false;
+        return piece().posAfter(fb) == from()  // piece is still here
+                && !isBlockedByKingPin(fb)
+                && myPiece.isDefendingTargetAfter(this, fb);
     }
 
     private boolean isBlockedByKingPin(VBoardInterface bc) {

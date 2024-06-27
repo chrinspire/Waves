@@ -322,6 +322,8 @@ public class Evaluation {
     }
 
     public String getReason() {
+        if (reason == null)
+            return "";
         return reason;
     }
 }

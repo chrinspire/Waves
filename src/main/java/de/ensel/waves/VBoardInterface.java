@@ -40,6 +40,7 @@ public interface VBoardInterface {
     // other
     int futureLevel();
 
+    boolean isCaptured(ChessPiece piece);
 }
 
 
