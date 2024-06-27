@@ -721,7 +721,7 @@ public class ChessBoard implements VBoardInterface {
         // Compare all moves returned by all my pieces and find the best.
         //Stream<Move> bestOpponentMoves = getBestMovesForColAfter( opponentColor(getTurnCol()), NOCHANGE );
         countCalculatedBoards = 0;
-        Stream<Move> bestMoves    = getBestMovesForColAfter( getTurnCol(), NOCHANGE, engParams );
+        Stream<Move> bestMoves    = getBestMovesForColAfter( getTurnCol(), engParams, NOCHANGE, Integer.MIN_VALUE, Integer.MAX_VALUE);
         bestMove = bestMoves.findFirst().orElse(null);
         //System.err.println("  --> " + bestMove );
         if (DEBUGMSG_MOVESELECTION) {
@@ -733,33 +733,56 @@ public class ChessBoard implements VBoardInterface {
     }
 
     int countCalculatedBoards;
-    Stream<Move> getBestMovesForColAfter(final int color, VBoardInterface upToNowBoard, ChessEngineParams engParams) {
+    Stream<Move> getBestMovesForColAfter(final int color, ChessEngineParams engParams, VBoardInterface upToNowBoard, int alpha, int beta) {
         final int maxBestMoves = engParams.searchMaxNrOfBestMovesPerPly();  // only the top moves are sorted
         List<Move> bestMoveCandidates = new ArrayList<>(maxBestMoves+(maxBestMoves>>1));
         List<Move> bestMoves = new ArrayList<>(maxBestMoves);
         List<Move> restMoves = new ArrayList<>();
         //nrOfLegalMoves[color] = 0;
+        boolean[] alphabetabreak = new boolean[]{false};  // array to be accessible from inside lambda :-/
+        int[] alphaS = new int[]{alpha};
+        int[] betaS = new int[]{beta};
+        boolean doABcheckInPresearch = upToNowBoard.futureLevel() >= engParams.searchMaxDepth()-1; 
         upToNowBoard.getPieces()
-                .filter(p -> p.color() == color)
-                .forEach( p -> {
-                    p.legalMovesAfter(upToNowBoard).forEach( move -> {
             .filter(p -> p.color() == color
                     && !upToNowBoard.isCaptured(p))
+            .forEach( p -> {
+                p.legalMovesAfter(upToNowBoard).forEach( move -> {
+                    if (!alphabetabreak[0]) { // like a for-break
                         Move evaluatedMove = p.getEvaluatedMoveToAfter(move, upToNowBoard);
-                        addMoveToSortedListOfCol(evaluatedMove, bestMoveCandidates, color, maxBestMoves+(maxBestMoves>>1), restMoves);
+                        addMoveToSortedListOfCol(evaluatedMove, bestMoveCandidates, color, maxBestMoves + (maxBestMoves >> 1), restMoves);
                         countCalculatedBoards++;
-                    });
+                        // alpha-beta-break-check (code duplication from below,... sorry :^)
+                        if (doABcheckInPresearch) {
+                            int bestEval0 = bestMoveCandidates.get(0).getEval().getEvalAt(0);
+                            if (isWhite(move.piece().color())) {
+                                alphaS[0] = max(alphaS[0] , bestEval0);
+                                if (bestEval0 >= betaS[0] )
+                                    alphabetabreak[0] = true;
+                            }
+                            else {
+                                betaS[0]  = min(betaS[0] , bestEval0);
+                                if (bestEval0 <= alphaS[0] )
+                                    alphabetabreak[0] = true;
+                            }
+                        }
+                    }
                 });
+            });
+        if (doABcheckInPresearch) {
+            // end of recursion, we treat the results of the pre-evaluation as final result.
+            return Stream.concat( bestMoveCandidates.stream(), restMoves.stream());
+        }
         // reevaluate moves by move simulation
-        if (upToNowBoard.futureLevel() < engParams.searchMaxDepth()-1) {
-            for (Move move : bestMoveCandidates) {
-                if ( abs(move.getEval().getEvalAt(0)) >= 3
-                     || abs(move.getEval().getEvalAt(2)) >= 6
-                     || (upToNowBoard.futureLevel() <= 0   // deep dive also for more opponent moves?
-                            && abs(move.getEval().getEvalAt(1)) >= 6)
+        for (Move move : bestMoveCandidates) {
+            if (!alphabetabreak[0]) {
+                if (abs(move.getEval().getEvalAt(0)) >= 3
+                        || abs(move.getEval().getEvalAt(2)) >= 6
+                        || (upToNowBoard.futureLevel() <= 0   // deep dive also for more opponent moves?
+                        && abs(move.getEval().getEvalAt(1)) >= 6)
                 ) {
                     VBoard nextBoard = VBoard.createNext(upToNowBoard, move);
-                    Move bestOppMove = getBestMovesForColAfter(opponentColor(color), nextBoard, engParams)
+                    Move bestOppMove = getBestMovesForColAfter(opponentColor(color), engParams, nextBoard, alpha, beta)
                             .findFirst().orElse(null);
                     if (bestOppMove != null) {
                         move.addEval(bestOppMove.getEval());
@@ -772,7 +795,19 @@ public class ChessBoard implements VBoardInterface {
                                     + " reason: " */ + move.getEval().getReason());
                     }
                 }
+            }
             addMoveToSortedListOfCol(move, bestMoves, color, maxBestMoves, restMoves);
+            // alpha-beta-break-check
+            int bestEval0 = bestMoves.get(0).getEval().getEvalAt(0);
+            if (isWhite(move.piece().color())) {
+                alpha = max(alpha, bestEval0);
+                if (bestEval0 >= beta)
+                    alphabetabreak[0] = true;
+            }
+            else {
+                beta = min(beta, bestEval0);
+                if (bestEval0 <= alpha)
+                    alphabetabreak[0] = true;
             }
         }
         return Stream.concat( bestMoves.stream(), restMoves.stream());
