@@ -20,7 +20,6 @@ package de.ensel.waves;
 
 import java.util.stream.Stream;
 
-import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.chessbasics.ChessBasics.chessBasicRes;
 
 /**
@@ -29,7 +28,6 @@ import static de.ensel.chessbasics.ChessBasics.chessBasicRes;
  * of it, esp. for future states, after some moves.
  */
 public interface VBoardInterface {
-
     // game / board
     enum GameState {
         NOTSTARTED, ONGOING, DRAW, WHITE_WON, BLACK_WON
@@ -46,6 +44,9 @@ public interface VBoardInterface {
 
     boolean isSquareEmpty(int pos);
     Stream<ChessPiece> getPieces();
+
+    StackedList<ChessPiece> capturedPieces();
+
     ChessPiece getPieceAt(int pos);
     int getPiecePos(ChessPiece pce);
 

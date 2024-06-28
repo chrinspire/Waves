@@ -12,28 +12,31 @@ import static de.ensel.waves.VBoardInterface.GameState.*;
 public class VBoard implements VBoardInterface {
     public static int usageCounter = 0;
     private final List<Move> moves = new ArrayList<>();
-    private final List<ChessPiece> capturedPieces = new ArrayList<>();
-    ChessBoard board;
+
+    private StackedList<ChessPiece> capturedPieces;
+    VBoardInterface preBoard;
 
 
-    private VBoard(ChessBoard baseBoard) {
-        this.board = baseBoard;
+    private VBoard(ChessBoard baseBoard, Move firstMove) {
+        this.preBoard = baseBoard;
+        this.capturedPieces = new StackedList<>(null);
+        addMove(firstMove);
     }
 
-    private VBoard(VBoard origin) {
-        this.board = origin.board;
+    private VBoard(VBoard origin, Move plusOneMove) {
+        this.preBoard = origin.preBoard;
+        this.capturedPieces = new StackedList<>(origin.capturedPieces, null);
         this.moves.addAll(origin.moves);
-        this.capturedPieces.addAll(origin.capturedPieces);
+        addMove(plusOneMove);
     }
 
-    // factory, based on this + one Mmove
+    // factory, based on this + one move
     public static VBoard createNext(VBoardInterface origin, Move plusOneMove) {
         VBoard newVB;
-        if (origin instanceof VBoard)
-            newVB = new VBoard((VBoard)origin);
+        if (origin instanceof ChessBoard)
+            newVB = new VBoard((ChessBoard)origin, plusOneMove);
         else
-            newVB = new VBoard((ChessBoard)origin);
-        newVB.addMove(plusOneMove);
+            newVB = new VBoard((VBoard)origin, plusOneMove);
         return newVB;
     }
 
@@ -43,8 +46,12 @@ public class VBoard implements VBoardInterface {
     public VBoard addMove(Move move) {
         usageCounter++;
         // if this new move captures a piece, let's remember that
-        if (hasPieceOfColorAt(opponentColor(move.piece().color()),move.to())) {
-            capturedPieces.add(getPieceAt(move.to()));
+        if (preBoard.hasPieceOfColorAt(opponentColor(move.piece().color()), move.to())) {
+            ChessPiece capturedPce = preBoard.getPieceAt(move.to());
+            if (capturedPce != null)
+                capturedPieces = new StackedList<>( preBoard.capturedPieces(), capturedPce);
+            else
+                capturedPieces = preBoard.capturedPieces();
         }
         moves.add(move);
         return this;
@@ -62,8 +69,13 @@ public class VBoard implements VBoardInterface {
 
     @Override
     public Stream<ChessPiece> getPieces() {
-        return board.getPieces()
+        return preBoard.getPieces()
                 .filter( p -> !capturedPieces.contains(p) );
+    }
+
+    @Override
+    public StackedList<ChessPiece> capturedPieces() {
+        return capturedPieces;
     }
 
     @Override
@@ -77,7 +89,7 @@ public class VBoard implements VBoardInterface {
         if (foundAt >= 0)
             return moves.get(foundAt).piece();
         // orig piece is still there
-        return board.getPieceAt(pos);
+        return preBoard.getPieceAt(pos);
     }
 
     @Override
@@ -112,7 +124,7 @@ public class VBoard implements VBoardInterface {
 
     @Override
     public int getTurnCol() {
-        return (moves.size() % 2 == 0) ? board.getTurnCol() : opponentColor(board.getTurnCol());
+        return (moves.size() % 2 == 0) ? preBoard.getTurnCol() : opponentColor(preBoard.getTurnCol());
     }
 
     @Override
@@ -141,7 +153,7 @@ public class VBoard implements VBoardInterface {
                 return false;
         }
         // nothing changed here
-        return board.isSquareEmpty(pos);
+        return preBoard.isSquareEmpty(pos);
     }
 
     @Override

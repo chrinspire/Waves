@@ -1451,6 +1451,12 @@ public class ChessBoard implements VBoardInterface {
         return Arrays.stream(piecesOnBoard).filter(Objects::nonNull);
     }
 
+    private final StackedList endOfStackedList = new StackedList(null);
+    @Override
+    public StackedList<ChessPiece> capturedPieces() {
+        return endOfStackedList;  // not all captured ones, but sinca previous board, which dos not exist for this is a baseBoard
+    }
+
     public int getNrOfPieces(int color) {
         return color == CIWHITE ? countOfWhitePieces : countOfBlackPieces;
     }
