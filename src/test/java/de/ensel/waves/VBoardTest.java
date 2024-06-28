@@ -33,8 +33,7 @@ class VBoardTest {
         // act
         Move p1move = p1.getMove(p1Pos,p3Pos);
         Move p2move = p2.getMove(p2Pos,p3Pos);
-        VBoard vBoard = new VBoard(board);
-        vBoard.addMove( p2move );
+        VBoard vBoard = VBoard.createNext(board, p2move );
 
         // assert
         assertEquals(true, vBoard.hasPieceOfColorAt(p2.color(), p3Pos));
@@ -69,8 +68,7 @@ class VBoardTest {
         ChessPiece p3 = board.getPieceAt(p3Pos);
 
         // act
-        VBoard vBoard = new VBoard(board);
-        vBoard.addMove( p1.getMove(p1Pos, pos4) );
+        VBoard vBoard = VBoard.createNext(board, p1.getMove(p1Pos, pos4) );
 
         // assert
         assertEquals(true, vBoard.hasPieceOfColorAt(p3.color(), p3Pos));

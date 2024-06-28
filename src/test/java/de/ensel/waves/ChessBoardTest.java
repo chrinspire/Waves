@@ -50,7 +50,7 @@ public class ChessBoardTest {
         ChessPiece p3 = board.getPieceAt(p3Pos);
 
         // act
-        Stream<Move> bestMoveForCol = board.getBestMovesForColAfter(CIWHITE, board.engParams, board.NOCHANGE, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        Stream<Move> bestMoveForCol = board.getBestMovesForColAfter(CIWHITE, board.engParams, board, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
         // assert
         StringBuilder result = new StringBuilder();

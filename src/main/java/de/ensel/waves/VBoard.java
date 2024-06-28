@@ -1,7 +1,6 @@
 package de.ensel.waves;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,11 +15,11 @@ public class VBoard implements VBoardInterface {
     ChessBoard board;
 
 
-    public VBoard(ChessBoard baseBoard) {
+    private VBoard(ChessBoard baseBoard) {
         this.board = baseBoard;
     }
 
-    public VBoard(VBoard origin) {
+    private VBoard(VBoard origin) {
         this.board = origin.board;
         this.moves.addAll(origin.moves);
         this.capturedPieces.addAll(origin.capturedPieces);
@@ -202,5 +201,5 @@ public class VBoard implements VBoardInterface {
         }
         return foundAt;
     }
-
 }
+

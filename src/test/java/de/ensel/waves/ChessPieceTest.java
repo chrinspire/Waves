@@ -238,7 +238,7 @@ class ChessPieceTest {
         ChessPiece p3 = board.getPieceAt(p3Pos);
 
         // so far same setup as above, but evaluation different as now it is looked at the board after the move b7c7
-        VBoard fb = new VBoard(board).addMove(p1.getDirectMove(p1ToPos));
+        VBoard fb = VBoard.createNext(board, p1.getDirectMove(p1ToPos));
         p1Pos = p1ToPos;
 
         assertCannotMoveToAfter(p1, p2Pos, fb);
@@ -254,8 +254,7 @@ class ChessPieceTest {
         // 5  b.░░░   ░░░   ░░░   ░░░
         // 4 ░░░^b ░░░   ░░░   ░░░      p2: b or B in opposite color of p1
         //... A  B  C  D  E  F  G  H
-        VBoard fb2 = new VBoard(board)
-                .addMove(p2.getDirectMove(p2ToPos))
+        VBoard fb2 = VBoard.createNext(board, p2.getDirectMove(p2ToPos))
                 .addMove(p1.getDirectMove(p1ToPos));
         assertEval4MoveToAfter(p2, p1Pos, -p1.getValue(), fb2);
     }
@@ -285,8 +284,7 @@ class ChessPieceTest {
         // 5  x.░░░   ░░░   ░░░   ░░░
         // 4 ░░░^x ░░░   ░░░   ░░░      p2: rotated between B, b, Q and q
         //... A  B  C  D  E  F  G  H
-        VBoard fb = new VBoard(board)
-                .addMove(p2.getDirectMove(p2ToPos))
+        VBoard fb = VBoard.createNext(board, p2.getDirectMove(p2ToPos))
                 .addMove(p1.getDirectMove(p1ToPos));
         StringBuilder result = new StringBuilder();
         p2.legalMovesAfter(fb)

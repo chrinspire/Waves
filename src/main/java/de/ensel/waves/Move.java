@@ -318,7 +318,7 @@ public class Move implements Comparable<Move> {
     }
 
     public boolean isALegalMoveNow() {
-        return isALegalMoveAfter(piece().board().NOCHANGE);
+        return isALegalMoveAfter(piece().board());
     }
 
     public boolean isALegalMoveAfter(VBoardInterface fb) {
@@ -343,7 +343,7 @@ public class Move implements Comparable<Move> {
     }
 
     public Evaluation getSimpleMoveEval() {
-        if (!piece().board().hasPieceOfColorAt(opponentColor(piece().color()), to()) || !myPiece.isADirectMoveAfter(this, piece().board().NOCHANGE))
+        if (!piece().board().hasPieceOfColorAt(opponentColor(piece().color()), to()) || !myPiece.isADirectMoveAfter(this, piece().board()))
             return new Evaluation();
         return new Evaluation(-piece().board().getPieceAt(to()).getValue(), 0);
     }

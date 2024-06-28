@@ -32,8 +32,6 @@ public class ChessBoard implements VBoardInterface {
     public static final ResourceBundle chessBoardRes = ResourceBundle.getBundle("de.ensel.chessboardres");
     final ChessEngineParams engParams = new ChessEngineParams();
 
-    final VBoard NOCHANGE = new VBoard(this);  // the empty change - for reuse...
-
     /**
      * configure here which debug messages should be printed
      * (not final, to be able to change it during debugging)
@@ -43,7 +41,7 @@ public class ChessBoard implements VBoardInterface {
     public static boolean DEBUGMSG_MOVEEVAL = false;   // <-- best for checking why moves are evaluated the way they are
     public static boolean DEBUGMSG_MOVESELECTION = false || DEBUGMSG_MOVEEVAL;
 
-    public static boolean SHOW_REASONS = true;  // DEBUGMSG_MOVESELECTION;
+    public static boolean SHOW_REASONS = false;  // DEBUGMSG_MOVESELECTION;
 
     public static int DEBUGFOCUS_SQ = coordinateString2Pos("e1");   // changeable globally, just for debug output and breakpoints+watches
     public static int DEBUGFOCUS_VP = 0;   // changeable globally, just for debug output and breakpoints+watches
@@ -188,7 +186,7 @@ public class ChessBoard implements VBoardInterface {
 
     @Override
     public boolean isCaptured(ChessPiece pce) {
-        return pce.pos() != NOWHERE;
+        return pce.pos() == NOWHERE;
     }
 
     @Override
@@ -726,7 +724,7 @@ public class ChessBoard implements VBoardInterface {
         // Compare all moves returned by all my pieces and find the best.
         //Stream<Move> bestOpponentMoves = getBestMovesForColAfter( opponentColor(getTurnCol()), NOCHANGE );
         countCalculatedBoards = 0;
-        Stream<Move> bestMoves    = getBestMovesForColAfter( getTurnCol(), engParams, NOCHANGE, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        Stream<Move> bestMoves    = getBestMovesForColAfter( getTurnCol(), engParams, this, Integer.MIN_VALUE, Integer.MAX_VALUE);
         bestMove = bestMoves.findFirst().orElse(null);
         //System.err.println("  --> " + bestMove );
         if (DEBUGMSG_MOVESELECTION) {
