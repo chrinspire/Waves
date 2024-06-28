@@ -171,13 +171,13 @@ public class ChessBoardTest {
         else
             expectedMoves = splitt[0];
         // get calculated best move
-        System.out.println("Searching Best move for Board: " + board.getBoardName() + ": " + board.getBoardFEN() + " .");
+        System.out.print("Searching Best move for Board: " + board.getBoardName() + ": " + board.getBoardFEN() + " .  ");
         Move bestMove = board.getBestMove();
         ChessBoard.DEBUGMSG_MOVEEVAL = false;
         ChessBoard.DEBUGMSG_MOVESELECTION = false;
 
         if (bestMove==null) {
-            System.out.println("Failed on board " + board.getBoardName() + ": " + board.getBoardFEN() + ": No move?");
+            System.out.println("--> Failed on board " + board.getBoardName() + ": " + board.getBoardFEN() + ": No move?");
             assertEquals(Arrays.toString(expectedMoves.split("\\|")) , "" );
         }
 
@@ -193,10 +193,11 @@ public class ChessBoardTest {
             }
         }
         if (!found) {
-            System.out.println("Failed on board " + board.getBoardName() + ": " + board.getBoardFEN() + ": "
+            System.out.println("--> Failed on board " + board.getBoardName() + ": " + board.getBoardFEN() + ": "
                     + bestMove.toString() + " (expected: " + expectedMoves + ")");
             assertEquals(Arrays.toString(expectedMoves.split("\\|")) , bestMove.toString() );
         }
+        System.out.println("--> Passed with move " + bestMove + " ("+ board.countCalculatedBoards+" boards evaluated).");
     }
 
 

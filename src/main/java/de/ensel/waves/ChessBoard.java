@@ -735,7 +735,7 @@ public class ChessBoard implements VBoardInterface {
         checkAndEvaluateGameOver();
     }
 
-    int countCalculatedBoards;
+    public int countCalculatedBoards;
     Stream<Move> getBestMovesForColAfter(final int color, ChessEngineParams engParams, VBoardInterface upToNowBoard, int alpha, int beta) {
         final int maxBestMoves = engParams.searchMaxNrOfBestMovesPerPly();  // only the top moves are sorted
         List<Move> bestMoveCandidates = new ArrayList<>(maxBestMoves+(maxBestMoves>>1));
