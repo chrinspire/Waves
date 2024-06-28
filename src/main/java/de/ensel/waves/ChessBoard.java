@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.waves.Move.addMoveToSortedListOfCol;
 import static de.ensel.waves.SimpleMove.getMoves;
+import static de.ensel.waves.VBoardInterface.GameState.*;
 import static java.lang.Math.*;
 import static java.text.MessageFormat.format;
 
@@ -78,7 +79,7 @@ public class ChessBoard implements VBoardInterface {
     private int nextFreePceID;
     public static final int NO_PIECE_ID = -1;
 
-    private int countOfWhitePieces;  // todo: make array with colorindex
+    int countOfWhitePieces;  // todo: make array with colorindex
     private int countOfBlackPieces;
     private int[] countBishops = new int[2];  // count bishops for colorIndex
     private int[] countKnights = new int[2];  // count knights for colorIndex
@@ -208,6 +209,10 @@ public class ChessBoard implements VBoardInterface {
     public boolean isCheck(int color) {
         return nrOfChecks(color) > 0;
     }
+
+    @Override
+    public int getNrOfRepetitions() { return repetitions; }
+
 
     public int nrOfChecks(int color) {
         int kingPos = getKingPos(color);
@@ -742,7 +747,8 @@ public class ChessBoard implements VBoardInterface {
         boolean[] alphabetabreak = new boolean[]{false};  // array to be accessible from inside lambda :-/
         int[] alphaS = new int[]{alpha};
         int[] betaS = new int[]{beta};
-        boolean doABcheckInPresearch = upToNowBoard.futureLevel() >= engParams.searchMaxDepth()-1; 
+        boolean doABcheckInPresearch = upToNowBoard.futureLevel() >= engParams.searchMaxDepth()-1;
+        final int[] countOppMoves = {0};
         upToNowBoard.getPieces()
             .filter(p -> p.color() == color
                     && !upToNowBoard.isCaptured(p))
@@ -752,6 +758,7 @@ public class ChessBoard implements VBoardInterface {
                         Move evaluatedMove = p.getEvaluatedMoveToAfter(move, upToNowBoard);
                         addMoveToSortedListOfCol(evaluatedMove, bestMoveCandidates, color, maxBestMoves + (maxBestMoves >> 1), restMoves);
                         countCalculatedBoards++;
+                        countOppMoves[0]++;
                         // alpha-beta-break-check (code duplication from below,... sorry :^)
                         if (doABcheckInPresearch) {
                             int bestEval0 = bestMoveCandidates.get(0).getEval().getEvalAt(0);
@@ -767,8 +774,15 @@ public class ChessBoard implements VBoardInterface {
                             }
                         }
                     }
+                    else
+                        countOppMoves[0]++;
                 });
             });
+
+        if (countOppMoves[0] == 0) {
+            // game over
+            return Stream.empty();
+        }
         if (doABcheckInPresearch) {
             // end of recursion, we treat the results of the pre-evaluation as final result.
             return Stream.concat( bestMoveCandidates.stream(), restMoves.stream());
@@ -780,8 +794,10 @@ public class ChessBoard implements VBoardInterface {
                         || upToNowBoard.futureLevel() == 0            // all my first moves
                         || (upToNowBoard.futureLevel() <= 4           // or early moves have a good followup
                             && abs(move.getEval().getEvalAt(2)) >= 6)
-                        || (upToNowBoard.futureLevel() <= -1          // deep dive also for more opponent moves?
+                        || (upToNowBoard.futureLevel() <= 1          // deep dive also for more opponent moves?
                             && abs(move.getEval().getEvalAt(1)) >= 6)
+                        || (upToNowBoard.futureLevel() <= 3          // deep dive also for more opponent moves?
+                            && abs(move.getEval().getEvalAt(1)) >= 9)
                 ) {
                     VBoard nextBoard = VBoard.createNext(upToNowBoard, move);
                     Move bestOppMove = getBestMovesForColAfter(opponentColor(color), engParams, nextBoard, alpha, beta)
@@ -792,6 +808,21 @@ public class ChessBoard implements VBoardInterface {
                                 + move.getEval() + " "
                                 + move.getEval().getReason() + " <-- "
                                 + "!{" + bestOppMove.getEval().getReason()+"} ");
+                        if (DEBUGMSG_MOVESELECTION && upToNowBoard.futureLevel() == 0)
+                            debugPrintln(DEBUGMSG_MOVESELECTION, "Reevaluated " /*+ move + " to " + move.getEval()
+                                    + " reason: " */ + move.getEval().getReason());
+                    }
+                    else if (!nextBoard.hasLegalMoves(opponentColor(move.piece().color()))) {  // be sure it was not null due to not wanting to calc deeper any more
+                        if (nextBoard.gameState() == DRAW ) {
+                            //TODO: use -piece-value-sum or other board evaluation here, so we do not like draws with more pieces on the board
+                            Evaluation drawEval = new Evaluation(0, 0);
+                            move.addEval(drawEval);
+                            move.getEval().setReason(upToNowBoard + " !draw!("+ drawEval + ") ");
+                        }
+                        else {
+                            move.addEval(new Evaluation(checkmateEvalIn(nextBoard.getTurnCol(), upToNowBoard.futureLevel()), 0));
+                            move.getEval().setReason(upToNowBoard + " !checkmate!");
+                        }
                         if (DEBUGMSG_MOVESELECTION && upToNowBoard.futureLevel() == 0)
                             debugPrintln(DEBUGMSG_MOVESELECTION, "Reevaluated " /*+ move + " to " + move.getEval()
                                     + " reason: " */ + move.getEval().getReason());
@@ -813,6 +844,11 @@ public class ChessBoard implements VBoardInterface {
             }
         }
         return Stream.concat( bestMoves.stream(), restMoves.stream());
+    }
+
+    public static int checkmateEvalIn(int color, int nrOfPlys) {
+        return isWhite(color) ? WHITE_IS_CHECKMATE + CHECK_IN_N_DELTA*nrOfPlys
+                : BLACK_IS_CHECKMATE - CHECK_IN_N_DELTA*nrOfPlys;
     }
 
     boolean doMove (SimpleMove m) {
@@ -1390,33 +1426,31 @@ public class ChessBoard implements VBoardInterface {
         return getPiece(pceId).toString();
     }
 
-    public String getGameState() {
+    @Override
+    public GameState gameState() {
         checkAndEvaluateGameOver();
-        String res;
         if (isGameOver()) {
             if (isCheck(CIWHITE))
-                res = chessBasicRes.getString("state.blackWins");
+                return BLACK_WON;
             else if (isCheck(CIBLACK))
-                res = chessBasicRes.getString("state.whiteWins");
-            else
-                res = chessBasicRes.getString("state.remis");
-            //TODO?: check and return stalemate
+                return WHITE_WON;
+            return DRAW;
         }
-        else {
-            if (getFullMoves() == 0)
-                res = chessBasicRes.getString("state.notStarted");
-            else
-                res = chessBasicRes.getString("state.ongoing");
-        }
-        if (repetitions>0)
-            res += " (" + repetitions + " " + chessBasicRes.getString("repetitions") + ")";
-        return res;
+        // ongoing
+        if (getFullMoves() == 0)
+            return NOTSTARTED;
+        return ONGOING;
     }
 
     @Override
     public Stream<ChessPiece> getPieces() {
         return Arrays.stream(piecesOnBoard).filter(Objects::nonNull);
     }
+
+    public int getNrOfPieces(int color) {
+        return color == CIWHITE ? countOfWhitePieces : countOfBlackPieces;
+    }
+
 
     // virtual non-linear, but continuously increasing "clock" used to remember update-"time"s and check if information is outdated
     private long updateClockFineTicks = 0;
@@ -1570,7 +1604,6 @@ public class ChessBoard implements VBoardInterface {
         return countPawnsInFile[color][file];
     }
 
-    @Override
     public boolean isGameOver() {
         return gameOver;
     }
@@ -1582,6 +1615,11 @@ public class ChessBoard implements VBoardInterface {
 
     public int nrOfLegalMoves(int color){
         return nrOfLegalMoves[color];
+    }
+
+    @Override
+    public boolean hasLegalMoves(int color){
+        return nrOfLegalMoves[color] > 0;
     }
 
     public int getKingPos(int color){
@@ -1596,6 +1634,7 @@ public class ChessBoard implements VBoardInterface {
         return MAX_INTERESTING_NROF_HOPS;
     }
 
+    @Override
     public int getTurnCol() {
         return turn;
     }
@@ -1655,7 +1694,7 @@ public class ChessBoard implements VBoardInterface {
     public String toString() {
         return "ChessBoard{" +
                 boardName + ": " +
-                "" + getGameState() + ", " +
+                "" + getGameStateDescription() + ", " +
                 "FEN=" + getBoardFEN() +
                 '}';
     }

@@ -20,18 +20,30 @@ package de.ensel.waves;
 
 import java.util.stream.Stream;
 
+import static de.ensel.chessbasics.ChessBasics.*;
+import static de.ensel.chessbasics.ChessBasics.chessBasicRes;
+
 /**
  * VBoard virtually represents a ChessBoard. Like a Chessboard, it provides methods to 
  * query the state of the board, but relies on an underlying real ChessBoard, but makes variants 
  * of it, esp. for future states, after some moves.
  */
 public interface VBoardInterface {
-    // game / board
-    boolean isGameOver();
-    boolean isCheck(int color);
 
-    // squares & pieces
+    // game / board
+    enum GameState {
+        NOTSTARTED, ONGOING, DRAW, WHITE_WON, BLACK_WON
+    }
+    GameState gameState();
+    boolean isCheck(int color);
+    int getTurnCol();
+    boolean hasLegalMoves(int color);
+
+        // squares & pieces
     boolean hasPieceOfColorAt(int color, int pos);
+
+    int getNrOfRepetitions();
+
     boolean isSquareEmpty(int pos);
     Stream<ChessPiece> getPieces();
     ChessPiece getPieceAt(int pos);
@@ -41,6 +53,23 @@ public interface VBoardInterface {
     int futureLevel();
 
     boolean isCaptured(ChessPiece piece);
+
+    default String getGameStateDescription() {
+        GameState s = gameState();
+        String res = switch (s) {
+            case WHITE_WON -> chessBasicRes.getString("state.whiteWins");
+            case BLACK_WON -> chessBasicRes.getString("state.blackWins");
+            case DRAW -> chessBasicRes.getString("state.remis");
+            case NOTSTARTED -> chessBasicRes.getString("state.notStarted");
+            case ONGOING -> chessBasicRes.getString("state.ongoing");
+        };
+        if (getNrOfRepetitions() > 0)
+            res += " (" + getNrOfRepetitions() + " " + chessBasicRes.getString("repetitions") + ")";
+        return res;
+    }
+
+    //// not needed:
+    // int getNrOfPieces(int color);
 }
 
 

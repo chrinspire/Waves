@@ -2,11 +2,13 @@ package de.ensel.waves;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static de.ensel.chessbasics.ChessBasics.*;
+import static de.ensel.waves.VBoardInterface.GameState.*;
 
 public class VBoard implements VBoardInterface {
     private final List<Move> moves = new ArrayList<>();
@@ -86,14 +88,38 @@ public class VBoard implements VBoardInterface {
     }
 
     @Override
+    public int getNrOfRepetitions() {
+        //TODO
+        return 0;
+    }
+
+    @Override
+    public GameState gameState() {
+        int turn = getTurnCol();
+        if (hasLegalMoves(turn))
+            return ONGOING;
+        if (isCheck(turn))
+            return isWhite(turn) ? BLACK_WON : WHITE_WON;
+        return DRAW;
+    }
+
+    @Override
     public boolean isCheck(int color) {
         // TODO
         return false;
     }
 
     @Override
-    public boolean isGameOver() {
-        // TODO
+    public int getTurnCol() {
+        return (moves.size() % 2 == 0) ? board.getTurnCol() : opponentColor(board.getTurnCol());
+    }
+
+    @Override
+    public boolean hasLegalMoves(int color) {
+        for (Iterator<ChessPiece> it = getPieces().filter(p -> p.color() == color).iterator(); it.hasNext(); ) {
+            if ( it.next().legalMovesAfter(this).findAny().orElse(null) != null )
+                return true;
+        }
         return false;
     }
 
@@ -138,6 +164,12 @@ public class VBoard implements VBoardInterface {
         return capturedPieces.contains(pce);
     }
 
+//    public int getNrOfPieces(int color) {
+//        return board.getNrOfPieces(color)
+//                - (int)(capturedPieces.stream()
+//                            .filter(p -> p.color() == color)
+//                            .count());
+//    }
 
     @Override
     public int getPiecePos(ChessPiece pce) {
