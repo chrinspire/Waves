@@ -12,7 +12,7 @@ import static de.ensel.chessbasics.ChessBasics.QUEEN_BLACK;
 import static de.ensel.waves.ChessBoard.DEBUGMSG_MOVEEVAL;
 import static org.junit.jupiter.api.Assertions.*;
 
-class ChessBoardTest {
+public class ChessBoardTest {
 
     // temporary/debug tests: choose the one best move
     @Disabled
@@ -157,7 +157,7 @@ class ChessBoardTest {
     }
 
 
-    static void doAndTestPuzzle(String fen, String expectedMoves, String themes, boolean debugmoves) {
+    public static void doAndTestPuzzle(String fen, String expectedMoves, String themes, boolean debugmoves) {
         //ChessBoard.DEBUGMSG_MOVEEVAL = debugmoves;
         ChessBoard.DEBUGMSG_MOVESELECTION = debugmoves;
         ChessBoard board = new ChessBoard(themes, fen);

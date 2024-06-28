@@ -2,10 +2,7 @@ package de.ensel.waves;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.stream.Stream;
-
 import static de.ensel.chessbasics.ChessBasics.*;
-import static de.ensel.waves.ChessBoard.DEBUGMSG_MOVEEVAL;
 import static org.junit.jupiter.api.Assertions.*;
 
 class VBoardTest {
