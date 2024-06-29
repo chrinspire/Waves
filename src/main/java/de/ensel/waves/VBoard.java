@@ -12,18 +12,23 @@ import static de.ensel.waves.VBoardInterface.GameState.*;
 public class VBoard implements VBoardInterface {
     public static int usageCounter = 0;
     private final List<Move> moves = new ArrayList<>();
-    private final List<ChessPiece> capturedPieces = new ArrayList<>();
+    private final List<ChessPiece>[] capturedPieces = new List[2];
     ChessBoard board;
 
 
     private VBoard(ChessBoard baseBoard) {
+        capturedPieces[0] = new ArrayList<>();
+        capturedPieces[1] = new ArrayList<>();
         this.board = baseBoard;
     }
 
     private VBoard(VBoard origin) {
+        capturedPieces[0] = new ArrayList<>();
+        capturedPieces[1] = new ArrayList<>();
         this.board = origin.board;
         this.moves.addAll(origin.moves);
-        this.capturedPieces.addAll(origin.capturedPieces);
+        for (int color = 0; color < 1; color++)
+            this.capturedPieces[color].addAll(origin.capturedPieces[color]);
     }
 
     // factory, based on this + one Mmove
@@ -43,8 +48,9 @@ public class VBoard implements VBoardInterface {
     public VBoard addMove(Move move) {
         usageCounter++;
         // if this new move captures a piece, let's remember that
-        if (hasPieceOfColorAt(opponentColor(move.piece().color()),move.to())) {
-            capturedPieces.add(getPieceAt(move.to()));
+        int opponentColor = opponentColor(move.piece().color());
+        if (hasPieceOfColorAt(opponentColor, move.to())) {
+            capturedPieces[opponentColor].add(getPieceAt(move.to()));
         }
         moves.add(move);
         return this;
@@ -63,7 +69,13 @@ public class VBoard implements VBoardInterface {
     @Override
     public Stream<ChessPiece> getPieces() {
         return board.getPieces()
-                .filter( p -> !capturedPieces.contains(p) );
+                .filter( p -> !(capturedPieces[CIWHITE].contains(p) || capturedPieces[CIBLACK].contains(p)) );
+    }
+
+    @Override
+    public Stream<ChessPiece> getPieces(int color) {
+        return board.getPieces(color)
+                .filter( p -> !capturedPieces[color].contains(p) );
     }
 
     @Override
@@ -99,7 +111,8 @@ public class VBoard implements VBoardInterface {
         int turn = getTurnCol();
         if (hasLegalMoves(turn))
             return ONGOING;
-        if (isCheck(turn))
+        if (getNrOfPieces(turn) == 0   // last piece is gone -> only happens in test positions :-)
+            || isCheck(turn))
             return isWhite(turn) ? BLACK_WON : WHITE_WON;
         return DRAW;
     }
@@ -150,9 +163,9 @@ public class VBoard implements VBoardInterface {
         result.append(moves.stream()
                 .map(Move::toString)
                 .collect(Collectors.joining(" ")));
-        if (!capturedPieces.isEmpty()) {
+        if ( !capturedPieces[CIWHITE].isEmpty() || !capturedPieces[CIBLACK].isEmpty()) {
             result.append(" (");
-            result.append(capturedPieces.stream()
+            result.append( Stream.concat(capturedPieces[CIWHITE].stream(), capturedPieces[CIBLACK].stream())
                     .map(p -> "x"+fenCharFromPceType(p.pieceType()) )
                     .collect(Collectors.joining(" ")));
             result.append(")");
@@ -162,7 +175,7 @@ public class VBoard implements VBoardInterface {
 
     @Override
     public boolean isCaptured(ChessPiece pce) {
-        return capturedPieces.contains(pce);
+        return capturedPieces[pce.color()].contains(pce);
     }
 
 //    public int getNrOfPieces(int color) {
@@ -182,6 +195,11 @@ public class VBoard implements VBoardInterface {
         }
         // it did not move
         return pce.pos();
+    }
+
+    @Override
+    public int getNrOfPieces(int color) {
+        return board.getNrOfPieces(color) - capturedPieces[color].size();
     }
 
 

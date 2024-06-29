@@ -1451,6 +1451,14 @@ public class ChessBoard implements VBoardInterface {
         return Arrays.stream(piecesOnBoard).filter(Objects::nonNull);
     }
 
+    @Override
+    public Stream<ChessPiece> getPieces(int color) {
+        return Arrays.stream(piecesOnBoard)
+                .filter(Objects::nonNull)
+                .filter(pce -> pce.color() == color );
+    }
+
+    @Override
     public int getNrOfPieces(int color) {
         return color == CIWHITE ? countOfWhitePieces : countOfBlackPieces;
     }

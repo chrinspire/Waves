@@ -38,16 +38,18 @@ public interface VBoardInterface {
     boolean isCheck(int color);
     int getTurnCol();
     boolean hasLegalMoves(int color);
-
-        // squares & pieces
-    boolean hasPieceOfColorAt(int color, int pos);
-
     int getNrOfRepetitions();
 
+    // squares & pieces
     boolean isSquareEmpty(int pos);
+
+    boolean hasPieceOfColorAt(int color, int pos);
+
     Stream<ChessPiece> getPieces();
+    Stream<ChessPiece> getPieces(int color);
     ChessPiece getPieceAt(int pos);
     int getPiecePos(ChessPiece pce);
+    int getNrOfPieces(int color);
 
     // other
     int futureLevel();
