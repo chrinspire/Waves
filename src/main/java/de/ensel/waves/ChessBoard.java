@@ -30,7 +30,8 @@ import static java.text.MessageFormat.format;
 
 public class ChessBoard implements VBoardInterface {
     public static final ResourceBundle chessBoardRes = ResourceBundle.getBundle("de.ensel.chessboardres");
-    final ChessEngineParams engParams = new ChessEngineParams();
+
+    private ChessEngineParams engParams = new ChessEngineParams();
 
     /**
      * configure here which debug messages should be printed
@@ -39,9 +40,9 @@ public class ChessBoard implements VBoardInterface {
     public static boolean DEBUGMSG_DISTANCES = false;
     public static boolean DEBUGMSG_CLASH_CALCULATION = false;
     public static boolean DEBUGMSG_MOVEEVAL = false;   // <-- best for checking why moves are evaluated the way they are
-    public static boolean DEBUGMSG_MOVESELECTION = false || DEBUGMSG_MOVEEVAL;
+    public static boolean DEBUGMSG_MOVESELECTION = true || DEBUGMSG_MOVEEVAL;
 
-    public static boolean SHOW_REASONS = false;  // DEBUGMSG_MOVESELECTION;
+    public static boolean SHOW_REASONS = true;  // DEBUGMSG_MOVESELECTION;
 
     public static int DEBUGFOCUS_SQ = coordinateString2Pos("e1");   // changeable globally, just for debug output and breakpoints+watches
     public static int DEBUGFOCUS_VP = 0;   // changeable globally, just for debug output and breakpoints+watches
@@ -104,6 +105,11 @@ public class ChessBoard implements VBoardInterface {
     }
 
     public ChessBoard(String boardName, String fenBoard) {
+        initChessBoard(new StringBuffer(boardName), fenBoard);
+    }
+
+    public ChessBoard(String boardName, String fenBoard, ChessEngineParams engParams) {
+        this.engParams = engParams;
         initChessBoard(new StringBuffer(boardName), fenBoard);
     }
 
@@ -748,8 +754,7 @@ public class ChessBoard implements VBoardInterface {
         boolean doABcheckInPresearch = upToNowBoard.futureLevel() >= engParams.searchMaxDepth()-1;
         final int[] countOppMoves = {0};
         upToNowBoard.getPieces()
-            .filter(p -> p.color() == color
-                    && !upToNowBoard.isCaptured(p))
+            .filter(p -> p.color() == color)
             .forEach( p -> {
                 p.legalMovesAfter(upToNowBoard).forEach( move -> {
                     if (!alphabetabreak[0]) { // like a for-break
@@ -1664,6 +1669,10 @@ public class ChessBoard implements VBoardInterface {
 
     public static void setMAX_INTERESTING_NROF_HOPS ( int RECONST_MAX_INTERESTING_NROF_HOPS){
         MAX_INTERESTING_NROF_HOPS = RECONST_MAX_INTERESTING_NROF_HOPS;
+    }
+
+    public void setEngParams(ChessEngineParams engParams) {
+        this.engParams = engParams;
     }
 
     //void setTurn(boolean turn);

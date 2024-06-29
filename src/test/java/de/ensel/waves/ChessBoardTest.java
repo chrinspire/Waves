@@ -11,15 +11,19 @@ import java.util.stream.Stream;
 import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.chessbasics.ChessBasics.QUEEN_BLACK;
 import static de.ensel.waves.ChessBoard.DEBUGMSG_MOVEEVAL;
+import static de.ensel.waves.ChessEngineParams.LEVEL_TEST_MID;
+import static de.ensel.waves.ChessEngineParams.LEVEL_TEST_QUICK;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ChessBoardTest {
+    public static ChessEngineParams testEngParams = new ChessEngineParams(LEVEL_TEST_MID);
 
     // temporary/debug tests: choose the one best move
     @Disabled
     @ParameterizedTest
     @CsvSource({
-            "3qkbnr/p1pp1ppp/b3p3/2P5/1r1P4/4P3/P2B1PPP/RN2K1NR b KQk - 1 9, a1a1" // bug: ignore Q taking and checking on f7?
+        //  "3qkbnr/p1pp1ppp/b3p3/2P5/1r1P4/4P3/P2B1PPP/RN2K1NR b KQk - 1 9, a1a1" // bug: ignore Q taking and checking on f7?
+        "8/5k2/2R3r1/3K4/8/8/6R1/8 b - - 0 1, g6g2"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
@@ -27,7 +31,7 @@ public class ChessBoardTest {
 
     @ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(ints = {ROOK, ROOK_BLACK, QUEEN, QUEEN_BLACK})
-    void getBestMoveForCol(int pceType) {
+    void getBestMoveForCol_Test(int pceType) {
         // arrange
         int p1Pos = coordinateString2Pos("b7");
         int p2Pos = coordinateString2Pos("b4");
@@ -40,6 +44,7 @@ public class ChessBoardTest {
         //... A  B  C  D  E  F  G  H
 
         ChessBoard board = new ChessBoard(FENPOS_EMPTY);
+        board.setEngParams(testEngParams);
         board.spawnPieceAt(pceType, p1Pos);
         int opponentBishopPceType = (isPieceTypeWhite(pceType) ? BISHOP_BLACK : BISHOP);
         board.spawnPieceAt(opponentBishopPceType, p2Pos);
@@ -48,9 +53,10 @@ public class ChessBoardTest {
         ChessPiece p = board.getPieceAt(p1Pos);
         ChessPiece p2 = board.getPieceAt(p2Pos);
         ChessPiece p3 = board.getPieceAt(p3Pos);
+        ChessEngineParams engParams = new ChessEngineParams(LEVEL_TEST_QUICK);
 
         // act
-        Stream<Move> bestMoveForCol = board.getBestMovesForColAfter(CIWHITE, board.engParams, board, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        Stream<Move> bestMoveForCol = board.getBestMovesForColAfter(CIWHITE, engParams, board, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
         // assert
         StringBuilder result = new StringBuilder();
@@ -161,7 +167,7 @@ public class ChessBoardTest {
     public static void doAndTestPuzzle(String fen, String expectedMoves, String themes, boolean debugmoves) {
         //ChessBoard.DEBUGMSG_MOVEEVAL = debugmoves;
         ChessBoard.DEBUGMSG_MOVESELECTION = debugmoves;
-        ChessBoard board = new ChessBoard(themes, fen);
+        ChessBoard board = new ChessBoard(themes, fen, testEngParams);
         String[] splitt = expectedMoves.trim().split(" ", 2);
         if (splitt.length==2 && splitt[1]!=null && splitt[1].length()>0) {
             // if expected moves is a series of moves, then the very first is still before the puzzle and must be moved first...
