@@ -47,7 +47,7 @@ public class Square {
 
     //// simple infp
 
-    String getCoverageInfoByColorForLevel(final boolean color, final int level) {
+    String getCoverageInfoByColorForLevel(final int color, final int level) {
         StringBuilder s = new StringBuilder(20);
         s.append(level).append(": -");
         return s.toString();

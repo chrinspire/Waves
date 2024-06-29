@@ -11,8 +11,7 @@ import java.util.stream.Stream;
 import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.chessbasics.ChessBasics.QUEEN_BLACK;
 import static de.ensel.waves.ChessBoard.DEBUGMSG_MOVEEVAL;
-import static de.ensel.waves.ChessEngineParams.LEVEL_TEST_MID;
-import static de.ensel.waves.ChessEngineParams.LEVEL_TEST_QUICK;
+import static de.ensel.waves.ChessEngineParams.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ChessBoardTest {

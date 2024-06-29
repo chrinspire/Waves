@@ -733,9 +733,10 @@ public class ChessBoard implements VBoardInterface {
         Stream<Move> bestMoves    = getBestMovesForColAfter( getTurnCol(), engParams, this, Integer.MIN_VALUE, Integer.MAX_VALUE);
         bestMove = bestMoves.findFirst().orElse(null);
         //System.err.println("  --> " + bestMove );
-        if (DEBUGMSG_MOVESELECTION) {
-            debugPrintln(DEBUGMSG_MOVESELECTION, "=> My best move (after looking at " + countCalculatedBoards
-                    + " positions): "+ bestMove +".");
+        if (true || DEBUGMSG_MOVESELECTION) {
+            debugPrintln(DEBUGMSG_MOVESELECTION, "=> My best move (after looking at "
+                    + countCalculatedBoards + " positions and " + VBoard.usageCounter + " moves"
+                    + "): " + bestMove +".");
             //debugPrintln(DEBUGMSG_MOVESELECTION, "(opponents best moves: " + bestOpponentMoves.findFirst().orElse(null) + ").");
         }
         checkAndEvaluateGameOver();

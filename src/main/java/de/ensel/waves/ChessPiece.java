@@ -33,6 +33,7 @@ public class ChessPiece {
 
     private final ChessBoard board;
     private final int myPceType;
+    private final int myColor;
     private final int myPceID;
     private int myPos;
 
@@ -43,6 +44,7 @@ public class ChessPiece {
     ChessPiece(ChessBoard myChessBoard, int pceType, int pceID, int pcePos) {
         this.board = myChessBoard;
         myPceType = pceType;
+        myColor = colorIndexOfPieceType(pceType);
         myPceID = pceID;
         myPos = pcePos;
         resetPieceBasics();
@@ -492,7 +494,7 @@ public class ChessPiece {
     }
 
     public int color() {
-        return colorIndexOfPieceType(myPceType);
+        return myColor;
     }
 
     int baseValue() {

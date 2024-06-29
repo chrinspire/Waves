@@ -10,6 +10,7 @@ import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.waves.VBoardInterface.GameState.*;
 
 public class VBoard implements VBoardInterface {
+    public static int usageCounter = 0;
     private final List<Move> moves = new ArrayList<>();
     private final List<ChessPiece> capturedPieces = new ArrayList<>();
     ChessBoard board;
@@ -40,6 +41,7 @@ public class VBoard implements VBoardInterface {
     ////
 
     public VBoard addMove(Move move) {
+        usageCounter++;
         // if this new move captures a piece, let's remember that
         if (hasPieceOfColorAt(opponentColor(move.piece().color()),move.to())) {
             capturedPieces.add(getPieceAt(move.to()));

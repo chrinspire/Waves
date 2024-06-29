@@ -133,10 +133,10 @@ public class ChessBoardController implements ChessEngine {
         //squareInfo.put("Attacks by white:",""+ sq.countDirectAttacksWithColor(WHITE) );
         //squareInfo.put("Attacks by black:",""+ sq.countDirectAttacksWithColor(BLACK) );
         squareInfo.put("Clash Eval:",""+sq.clashEval());
-        squareInfo.put("Coverage by White:", " " +sq.getCoverageInfoByColorForLevel(WHITE, 1)
-                +" "+sq.getCoverageInfoByColorForLevel(WHITE, 2));
-        squareInfo.put("Coverage by Black:", " " +sq.getCoverageInfoByColorForLevel(BLACK, 1)
-                +" "+sq.getCoverageInfoByColorForLevel(BLACK, 2));
+        squareInfo.put("Coverage by White:", " " +sq.getCoverageInfoByColorForLevel(CIWHITE, 1)
+                +" "+sq.getCoverageInfoByColorForLevel(CIWHITE, 2));
+        squareInfo.put("Coverage by Black:", " " +sq.getCoverageInfoByColorForLevel(CIBLACK, 1)
+                +" "+sq.getCoverageInfoByColorForLevel(CIBLACK, 2));
 
         // distance info for alle pieces in relation to this square
         board.getPieces().forEach(p -> {
