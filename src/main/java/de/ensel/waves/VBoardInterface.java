@@ -45,7 +45,7 @@ public interface VBoardInterface {
     boolean isSquareEmpty(int pos);
     Stream<ChessPiece> getPieces();
 
-    StackedList<ChessPiece> capturedPieces();
+    StackedArray<ChessPiece> capturedPieces();
 
     ChessPiece getPieceAt(int pos);
     int getPiecePos(ChessPiece pce);

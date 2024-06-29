@@ -1451,10 +1451,10 @@ public class ChessBoard implements VBoardInterface {
         return Arrays.stream(piecesOnBoard).filter(Objects::nonNull);
     }
 
-    private final StackedList endOfStackedList = new StackedList(null);
+    //private final StackedArray endOfStackedArray = new StackedArray(null);
     @Override
-    public StackedList<ChessPiece> capturedPieces() {
-        return endOfStackedList;  // not all captured ones, but sinca previous board, which dos not exist for this is a baseBoard
+    public StackedArray<ChessPiece> capturedPieces() {
+        return null;  // not all captured ones, but captured since previous (V)Board, which dos not exist for this is a baseBoard
     }
 
     public int getNrOfPieces(int color) {

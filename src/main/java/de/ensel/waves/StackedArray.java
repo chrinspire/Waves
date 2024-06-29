@@ -6,32 +6,58 @@ import java.util.List;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-public class StackedList<T> implements Iterable<T> {
-    private T data;
-    private int size = 0;
-    StackedList<T> pre;
+public class StackedArray<T> implements Iterable<T> {
+    private Object[] data;   // due to unknown size at compile time (or some other fancy explanation) an array T[] is not possible
+    private int size;
+    //StackedArray<T> pre;
 
-    public StackedList(T data) {
-        // first element
-        this.data = data;
-        if (data != null)
-            this.size = 1;
-        this.pre = null;
+    public StackedArray(T data) {
+        initFirstElement(data);
     }
 
-    public StackedList(StackedList<T> pre, T data) {
-        this.data = data;
-        this.pre = pre;   // skip empty predecessors
-        if (data != null)
-            this.size = (pre == null ? 0 : pre.size()+1);
+    private void initFirstElement(T elem) {
+        // first element
+        if (elem != null && !(elem instanceof T))
+            throw new RuntimeException("Type error: inserting data object with incorrect type.");
+        // note: fixes size is ok here, we never store more than 1 element per move(depth) (assumed that pawn promoting
+        // exchanges the pawn for a queen)
+        // otherwise a dynamically growing array would be needed - either a Java.Array or e.g. in bigger junks do reallocate a new array and (hmm) copying
+        this.data = new Object[ChessEngineParams.MAX_SEARCHDEPTH+1];
+        // for tests below: this.data = new Object[2_000_010];   // fixes size is ok, we never store more than 1 element per move(depth) (assumed that pawn promoting exchanges the pawn for a queen)
+        if (elem != null) {
+            this.size = 1;
+            this.data[0] = elem;
+        }
+        else {
+            this.size = 0;
+        }
+        //this.pre = null;
+    }
+
+    public StackedArray(StackedArray<T> pre, T elem) {
+        if (pre == null) {
+            initFirstElement(elem);
+            return;
+        }
+        //this.pre = pre;   // skip empty predecessors
+        this.data = pre.data;  // we are good and all share the same array, so no copying necessary!
+        int pos = pre.size;
+        if (elem == null) {
+            // nothing new ...
+            size = pos;
+        }
+        else {
+            data[pos] = elem;  // ok, we never check the boundary - in our case we know the move depth limit
+            this.size = pos+1;
+        }
     }
 
     public int size() {
         return size;
     }
 
-    public T data() {
-        return data;
+    public T elem() {
+        return (T)data[size-1];
     }
 
     @Override
@@ -50,9 +76,14 @@ public class StackedList<T> implements Iterable<T> {
         return sb.toString();
     }
 
-    public boolean contains(T e) {
-        for (T t : this) {
-            if (t.equals(e))
+    /**
+     * be aware, this is comparing pointers, not using equals
+     * @param elem
+     * @return
+     */
+    public boolean contains(T elem) {
+        for (Object e : data) {
+            if (e == elem)
                 return true;
         }
         return false;
@@ -67,21 +98,21 @@ public class StackedList<T> implements Iterable<T> {
 
     @Override
     public Iterator<T> iterator() {
-        return new StackedListIterator();
+        return new StackedArrayIterator();
     }
 
-    private class StackedListIterator implements Iterator<T> {
-        private StackedList<T> current;
+    private class StackedArrayIterator implements Iterator<T> {
+        private Object[] iData;
+        private int iPos;
 
-        public StackedListIterator() {
-            current = StackedList.this;
-            while (current != null && current.data == null)
-                current = current.pre;
+        public StackedArrayIterator() {
+            iData = StackedArray.this.data;
+            iPos = StackedArray.this.size-1;
         }
 
         @Override
         public boolean hasNext() {
-            return current != null;
+            return iPos >= 0;
         }
 
         @Override
@@ -89,10 +120,8 @@ public class StackedList<T> implements Iterable<T> {
             if (!hasNext()) {
                 throw new NoSuchElementException();
             }
-            T result = current.data;
-            do {
-                current = current.pre;
-            } while (current != null && current.data == null);
+            T result = (T)iData[iPos];
+            iPos--;
             return result;
         }
     }
@@ -115,45 +144,46 @@ public class StackedList<T> implements Iterable<T> {
         }
 
         Elem firstE = new Elem(1);
-        StackedList<Elem> al1 = new StackedList<>(firstE);
+        StackedArray<Elem> al1 = new StackedArray<>(firstE);
         Elem midE = new Elem(2);
-        StackedList<Elem> al2 = new StackedList<>(al1, midE);
+        StackedArray<Elem> al2 = new StackedArray<>(al1, midE);
         Elem lastE = new Elem(3);
-        StackedList<Elem> al3 = new StackedList<>(al2, lastE);
+        StackedArray<Elem> al3 = new StackedArray<>(al2, lastE);
 
         System.out.println("1) " + al1 + " " + (al1.contains(firstE) ? "ok" : "NIO") + " size="+al1.size() );
         System.out.println("2) " + al2 + " " + (al2.contains(midE) ? "ok" : "NIO") + " size="+al2.size() );
         System.out.println("3) " + al3 + " " + (al3.contains(lastE) ? "ok" : "NIO") + " size="+al3.size() );
 
         firstE.setValue(111);
-        al2.data.setValue(222);
+        midE.setValue(222);
 
         System.out.println("1) " + al1 + " " + (al1.contains(firstE) ? "ok" : "NIO") + " size="+al1.size() );
         System.out.println("2) " + al2 + " " + (al2.contains(midE) ? "ok" : "NIO") + " size="+al2.size() );
         System.out.println("3) " + al3 + " " + (al3.contains(lastE) ? "ok" : "NIO") + " size="+al3.size() );
 
-        StackedList<Elem> al0 = new StackedList<>(null);
-        al1 = new StackedList<>(al0, firstE);
-        al2 = new StackedList<>(al1, midE);
-        al3 = new StackedList<>(al2, lastE);
+        StackedArray<Elem> al0 = new StackedArray<>(null);
+        al1 = new StackedArray<>(al0, firstE);
+        al2 = new StackedArray<>(al1, midE);
+        al3 = new StackedArray<>(al2, lastE);
         System.out.println("1) " + al1 + " " + (al1.contains(firstE) ? "ok" : "NIO") + " size="+al1.size() );
         System.out.println("2) " + al2 + " " + (al2.contains(midE) ? "ok" : "NIO") + " size="+al2.size() );
         System.out.println("3) " + al3 + " " + (al3.contains(lastE) ? "ok" : "NIO") + " size="+al3.size() );
-        System.out.println("3/1) " + al3 + " " + (al3.contains(firstE) ? "ok" : "NIO") + " size="+al3.size() );
-        System.out.println("3/2) " + al3 + " " + (al3.contains(new Elem(2)) ? "NIO" : "ok") + " size="+al3.size() );
+        System.out.println("3/1) " + (al3.contains(firstE) ? "ok" : "NIO") + " size="+al3.size() );
+        System.out.println("3/2) " + (al3.contains(new Elem(2)) ? "NIO" : "ok") + " size="+al3.size() );
 
         // test a large list
+        /* // NEEDS enlarged inner data array --> change in initFirstElement() above, to do this test here
         long startTime = System.currentTimeMillis();
         Elem content = new Elem(3);
         Elem otherc = new Elem(5);
-        StackedList<Elem> listend = new StackedList<>(content);
+        StackedArray<Elem> listend = new StackedArray<>(content);
         int i;
         for (i = 1; i < 1_000_000; i++) {
-            listend = new StackedList<>(listend, content);
+            listend = new StackedArray<>(listend, content);
         }
-        listend = new StackedList<>(listend, otherc);
+        listend = new StackedArray<>(listend, otherc);
         for (i = 1; i < 1_000_000; i++) {
-            listend = new StackedList<>(listend, content);
+            listend = new StackedArray<>(listend, content);
         }
         long duration = System.currentTimeMillis() - startTime;
         System.out.println("done 1a: " + listend.size() + ", " + duration + " ms");
@@ -216,7 +246,7 @@ public class StackedList<T> implements Iterable<T> {
         }
         duration = System.currentTimeMillis() - startTime;
         System.out.println("Done 3c: " + sum + ", " + duration + " ms total");
-
+        */
     }
 }
 

@@ -13,19 +13,19 @@ public class VBoard implements VBoardInterface {
     public static int usageCounter = 0;
     private final List<Move> moves = new ArrayList<>();
 
-    private StackedList<ChessPiece> capturedPieces;
+    private StackedArray<ChessPiece> capturedPieces;
     VBoardInterface preBoard;
 
 
     private VBoard(ChessBoard baseBoard, Move firstMove) {
         this.preBoard = baseBoard;
-        this.capturedPieces = new StackedList<>(null);
+        this.capturedPieces = null;
         addMove(firstMove);
     }
 
     private VBoard(VBoard origin, Move plusOneMove) {
         this.preBoard = origin.preBoard;
-        this.capturedPieces = new StackedList<>(origin.capturedPieces, null);
+        this.capturedPieces = null;
         this.moves.addAll(origin.moves);
         addMove(plusOneMove);
     }
@@ -49,9 +49,7 @@ public class VBoard implements VBoardInterface {
         if (preBoard.hasPieceOfColorAt(opponentColor(move.piece().color()), move.to())) {
             ChessPiece capturedPce = preBoard.getPieceAt(move.to());
             if (capturedPce != null)
-                capturedPieces = new StackedList<>( preBoard.capturedPieces(), capturedPce);
-            else
-                capturedPieces = preBoard.capturedPieces();
+                capturedPieces = new StackedArray<>( preBoard.capturedPieces(), capturedPce);
         }
         moves.add(move);
         return this;
@@ -69,12 +67,14 @@ public class VBoard implements VBoardInterface {
 
     @Override
     public Stream<ChessPiece> getPieces() {
+        if (capturedPieces == null)
+            return preBoard.getPieces();
         return preBoard.getPieces()
                 .filter( p -> !capturedPieces.contains(p) );
     }
 
     @Override
-    public StackedList<ChessPiece> capturedPieces() {
+    public StackedArray<ChessPiece> capturedPieces() {
         return capturedPieces;
     }
 
@@ -162,7 +162,7 @@ public class VBoard implements VBoardInterface {
         result.append(moves.stream()
                 .map(Move::toString)
                 .collect(Collectors.joining(" ")));
-        if (!capturedPieces.isEmpty()) {
+        if (capturedPieces != null && !capturedPieces.isEmpty()) {
             result.append(" (");
             result.append(capturedPieces.stream()
                     .map(p -> "x"+fenCharFromPceType(p.pieceType()) )
@@ -174,7 +174,7 @@ public class VBoard implements VBoardInterface {
 
     @Override
     public boolean isCaptured(ChessPiece pce) {
-        return capturedPieces.contains(pce);
+        return capturedPieces != null && capturedPieces.contains(pce);
     }
 
 //    public int getNrOfPieces(int color) {
