@@ -13,26 +13,24 @@ public class VBoard implements VBoardInterface {
     public static int usageCounter = 0;
     private final List<Move> moves = new ArrayList<>();
     private final List<ChessPiece> capturedPieces = new ArrayList<>();
-    ChessBoard board;
+    VBoardInterface preBoard;
+    ChessBoard baseBoard;
 
-
-    private VBoard(ChessBoard baseBoard) {
-        this.board = baseBoard;
-    }
-
-    private VBoard(VBoard origin) {
-        this.board = origin.board;
-        this.moves.addAll(origin.moves);
-        this.capturedPieces.addAll(origin.capturedPieces);
+    private VBoard(VBoardInterface preBoard) {
+        this.preBoard = preBoard;
+        if (preBoard instanceof ChessBoard) {
+            this.baseBoard = (ChessBoard)preBoard;
+            return;
+        }
+        VBoard preVB = (VBoard)preBoard;
+        this.baseBoard = preVB.baseBoard;
+        this.moves.addAll(preVB.moves);
+        this.capturedPieces.addAll(preVB.capturedPieces);
     }
 
     // factory, based on this + one Mmove
     public static VBoard createNext(VBoardInterface origin, Move plusOneMove) {
-        VBoard newVB;
-        if (origin instanceof VBoard)
-            newVB = new VBoard((VBoard)origin);
-        else
-            newVB = new VBoard((ChessBoard)origin);
+        VBoard newVB = new VBoard(origin);
         newVB.addMove(plusOneMove);
         return newVB;
     }
@@ -43,16 +41,26 @@ public class VBoard implements VBoardInterface {
     public VBoard addMove(Move move) {
         usageCounter++;
         // if this new move captures a piece, let's remember that
-        if (hasPieceOfColorAt(opponentColor(move.piece().color()),move.to())) {
-            capturedPieces.add(getPieceAt(move.to()));
-        }
-        moves.add(move);
+        ChessPiece movingPiece = getPieceAt(move.from());
+        int toPos = move.to();
+        doAddMoveInternals(move, movingPiece, toPos);
         return this;
     }
 
     public VBoard addMove(ChessPiece mover, int toPos) {
-        addMove(mover.getDirectMoveAfter(toPos, this));
+        Move move = mover.getDirectMoveAfter(toPos, this);
+        doAddMoveInternals(move, mover, toPos);
         return this;
+    }
+
+    private void doAddMoveInternals(Move move, ChessPiece movingPiece, int toPos) {
+        moves.add(move);   // needs to be called first, so depth will be correct from here on
+        if (preBoard.hasPieceOfColorAt(opponentColor(move.piece().color()), toPos)) {
+            ChessPiece capturedPiece = preBoard.getPieceAt(toPos);
+            capturedPiece.setPosAfter(NOWHERE, this);
+            capturedPieces.add(capturedPiece);
+        }
+        movingPiece.setPosAfter(toPos, this);
     }
 
 
@@ -62,7 +70,7 @@ public class VBoard implements VBoardInterface {
 
     @Override
     public Stream<ChessPiece> getPieces() {
-        return board.getPieces()
+        return baseBoard.getPieces()
                 .filter( p -> !capturedPieces.contains(p) );
     }
 
@@ -77,7 +85,7 @@ public class VBoard implements VBoardInterface {
         if (foundAt >= 0)
             return moves.get(foundAt).piece();
         // orig piece is still there
-        return board.getPieceAt(pos);
+        return baseBoard.getPieceAt(pos);
     }
 
     @Override
@@ -112,7 +120,7 @@ public class VBoard implements VBoardInterface {
 
     @Override
     public int getTurnCol() {
-        return (moves.size() % 2 == 0) ? board.getTurnCol() : opponentColor(board.getTurnCol());
+        return (moves.size() % 2 == 0) ? baseBoard.getTurnCol() : opponentColor(baseBoard.getTurnCol());
     }
 
     @Override
@@ -122,6 +130,31 @@ public class VBoard implements VBoardInterface {
                 return true;
         }
         return false;
+    }
+
+    @Override
+    public VBoardInterface preBoard() {
+        return preBoard;
+    }
+
+    @Override
+    public boolean hasPreBoard(VBoardInterface searchBoard) {
+        int d = depth();
+        if (searchBoard == null || searchBoard.depth() >= d)
+            return false;
+        VBoardInterface pre = this;
+        do {
+            pre = pre.preBoard();
+            d--;
+        } while (d > searchBoard.depth());  // go down to the right depth
+        if (pre == searchBoard)            // found
+            return true;
+        return false;
+    }
+
+    @Override
+    public int depth() {
+        return moves.size();
     }
 
     @Override
@@ -141,7 +174,7 @@ public class VBoard implements VBoardInterface {
                 return false;
         }
         // nothing changed here
-        return board.isSquareEmpty(pos);
+        return baseBoard.isSquareEmpty(pos);
     }
 
     @Override

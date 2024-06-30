@@ -1431,6 +1431,11 @@ public class ChessBoard implements VBoardInterface {
     }
 
     @Override
+    public boolean hasPreBoard(VBoardInterface preBoard) {
+        return false;
+    }
+
+    @Override
     public GameState gameState() {
         checkAndEvaluateGameOver();
         if (isGameOver()) {
@@ -1612,6 +1617,12 @@ public class ChessBoard implements VBoardInterface {
         return gameOver;
     }
 
+
+    @Override
+    public int depth() {
+        return 0;
+    }
+
     @Override
     public int futureLevel() {
         return 0;
@@ -1624,6 +1635,11 @@ public class ChessBoard implements VBoardInterface {
     @Override
     public boolean hasLegalMoves(int color){
         return nrOfLegalMoves[color] > 0;
+    }
+
+    @Override
+    public VBoardInterface preBoard() {
+        return null;
     }
 
     public int getKingPos(int color){

@@ -322,7 +322,7 @@ public class Move implements Comparable<Move> {
     }
 
     public boolean isALegalMoveAfter(VBoardInterface fb) {
-        if (fb.isCaptured(piece()))
+        if (fb.isCaptured(piece()))  //TODO!!! replace with access to piece.posAfter(fb) != NOWHERE
             return false;
         return piece().posAfter(fb) == from()   // piece is still here
                 && !isBlockedByKingPin(fb)
@@ -349,7 +349,8 @@ public class Move implements Comparable<Move> {
     }
 
     public Evaluation getSimpleMoveEvalAfter(VBoardInterface bc) {
-        assert (isALegalMoveAfter(bc));
+        boolean isALegalMoveAfter = isALegalMoveAfter(bc);
+        assert isALegalMoveAfter;
         // consider context of already done moves.
        ChessPiece capturedPiece = bc.getPieceAt(to());
        if (capturedPiece == null)

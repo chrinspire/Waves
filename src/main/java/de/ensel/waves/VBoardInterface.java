@@ -38,6 +38,8 @@ public interface VBoardInterface {
     boolean isCheck(int color);
     int getTurnCol();
     boolean hasLegalMoves(int color);
+    VBoardInterface preBoard();
+    boolean hasPreBoard(VBoardInterface preBoard);
 
         // squares & pieces
     boolean hasPieceOfColorAt(int color, int pos);
@@ -50,6 +52,7 @@ public interface VBoardInterface {
     int getPiecePos(ChessPiece pce);
 
     // other
+    int depth();
     int futureLevel();
 
     boolean isCaptured(ChessPiece piece);

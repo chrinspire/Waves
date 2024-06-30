@@ -15,7 +15,7 @@ import static de.ensel.waves.ChessEngineParams.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ChessBoardTest {
-    public static ChessEngineParams testEngParams = new ChessEngineParams(LEVEL_TEST_MID);
+    public static ChessEngineParams testEngParams = new ChessEngineParams(LEVEL_TEST_LONG);
 
     // temporary/debug tests: choose the one best move
     @Disabled

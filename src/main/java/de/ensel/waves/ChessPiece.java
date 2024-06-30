@@ -26,8 +26,7 @@ import java.util.List;
 import java.util.stream.Stream;
 import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.waves.ChessBoard.*;
-import static java.lang.Math.abs;
-import static java.lang.Math.max;
+import static java.lang.Math.*;
 
 public class ChessPiece {
 
@@ -35,18 +34,28 @@ public class ChessPiece {
     private final int myPceType;
     private final int myColor;
     private final int myPceID;
-    private int myPos;
+
+    private class VBdata {
+        int pos = POS_UNSET;
+        VBoardInterface vBoard = null;
+    }
+    final private VBdata[] vBdata = new VBdata[ChessEngineParams.MAX_SEARCHDEPTH+3];
+    private int lastPosChange;
 
     private MovesCollection[] moves;
 
     //// constructors + factory
 
     ChessPiece(ChessBoard myChessBoard, int pceType, int pceID, int pcePos) {
+        for(int i = 0; i < vBdata.length; i++)
+            vBdata[i] = new VBdata();
         this.board = myChessBoard;
         myPceType = pceType;
         myColor = colorIndexOfPieceType(pceType);
         myPceID = pceID;
-        myPos = pcePos;
+        vBdata[0].pos = pcePos;
+        vBdata[0].vBoard = myChessBoard;
+        lastPosChange = 0;
         resetPieceBasics();
     }
 
@@ -483,7 +492,8 @@ public class ChessPiece {
      */
     public void die() {
         // little to clean up here...
-        myPos = NOWHERE;
+        vBdata[0].pos = NOWHERE;
+        lastPosChange = 0;
     }
 
     //// simple info
@@ -514,11 +524,11 @@ public class ChessPiece {
     }
 
     public int staysEval() {
-        return board.getSquare(myPos).clashEval();
+        return board.getSquare(vBdata[0].pos).clashEval();
     }
 
 //    public boolean canStayReasonably() {
-//        return evalIsOkForColByMin(board.getBoardSquare(myPos).clashEval(), color());
+//        return evalIsOkForColByMin(board.getBoardSquare(vBdata[0].pos).clashEval(), color());
 //    }
 
     private Stream<Move> allMoves() {
@@ -528,8 +538,82 @@ public class ChessPiece {
 
     //// BoardChange dependent analogies for getters
 
-    public int posAfter(VBoardInterface bc) {
-        return bc.getPiecePos(this);
+    public int posAfter(VBoardInterface fb) {
+        int fbDepthPos = fb.depth();
+        if (fb == vBdata[fbDepthPos].vBoard) {
+            // we are asked for a VBoard at a depth we can verify we know it
+            return vBdata[fbDepthPos].pos;
+        }
+        if (fbDepthPos > lastPosChange) {
+            // we are asked for a depth that is later than our last known position at an at that depth unknown board.
+            // But as we never got updated, we must have stayed where we are - or this fb is from a different move order?
+
+            // Note: This depends on a "nice" backtracking behaviour in the call order. To work generally, we either need
+            // an "indefinitely" large hashmap, which is not possible, or will need to trigger a recalc.
+            if (fb.hasPreBoard(vBdata[lastPosChange].vBoard))
+                return vBdata[lastPosChange].pos;   // only if the fb.preBoard(at depth lastPosChange) is the one we know.
+            // no -> search on
+            do {
+                lastPosChange = findPrevDepthBefore(lastPosChange);
+                assert lastPosChange >= 0;  // <0 should never, as the baseboard should always be matching - unless we coming from a different base board
+            } while ( !fb.hasPreBoard(vBdata[lastPosChange].vBoard) );
+            return vBdata[lastPosChange].pos;
+        }
+        // we are on the same depth on a new board or even on an earlier depth
+        // check our timeline backwards - we assume we are asked for a valid predecessor vboard
+        int prevPosChange = min(lastPosChange, fbDepthPos);
+        do {
+            prevPosChange = findPrevDepthBefore(prevPosChange);
+        } while (  !fb.hasPreBoard(vBdata[prevPosChange].vBoard) );
+
+        assert prevPosChange >= 0;  // otherwise we would not have even started from the same origin board...
+        assert vBdata[prevPosChange].pos != POS_UNSET;
+        //already checked above: assert fb.hasPreBoard(vBdata[prevPosChange].vBoard); // check that the fb.preBoard(at depth lastPosChange) is the one we know.
+
+        if (prevPosChange > 0) {
+            vBdata[fbDepthPos].pos = vBdata[prevPosChange].pos;  // we are not on the base board, let's even cache it at that depth, so we do not have to search again.
+            vBdata[fbDepthPos].vBoard = null;                    // although we do not know the board (and see no purpose here to retrieve it from fb)
+        }
+        return vBdata[prevPosChange].pos;
+    }
+
+//    /**
+//     * find a certain VBoard in my history backwards from a max depth.
+//     * @param fb the VBoard to be searched for
+//     * @param maxDepth start search incl. this depth
+//     * @return position in vBData, -1 if not found
+//     */
+//    private int findVBoardBackFrom(VBoardInterface fb, int maxDepth) {
+//        for (int i = maxDepth; i >= 0; i--) {
+//            if (vBdata[i].vBoard == fb)
+//                return i;
+//        }
+//        return -1;
+//    }
+
+    /**
+     * find VBoard that was set prior to (not including) beforePos backwards in my history.
+     * @return position in vBData, -1 if not found
+     */
+    private int findPrevDepthBefore(int beforePos) {
+        for (int i = beforePos-1; i >= 0; i--) {
+            if (vBdata[i].vBoard != null)
+                return i;
+        }
+        return -1;
+    }
+
+
+    //// BoardChange dependent analogies for setters
+
+    public void setPosAfter(int pos, VBoard fb) {
+        while (++lastPosChange < fb.depth()) {
+            vBdata[lastPosChange].vBoard = null;  // clear the vBoards in between, so we know that there was no new information in the meantime
+            vBdata[lastPosChange].pos = POS_UNSET;
+        }
+        lastPosChange = fb.depth();
+        vBdata[lastPosChange].pos = pos;
+        vBdata[lastPosChange].vBoard = fb;
     }
 
 
@@ -544,7 +628,7 @@ public class ChessPiece {
     }
 
     public int pos() {
-        return myPos;
+        return vBdata[0].pos;
     }
 
     public ChessBoard board() {
@@ -555,7 +639,7 @@ public class ChessPiece {
     //// setter
 
     public void setPos(int pos) {
-        myPos = pos;
+        vBdata[0].pos = pos;
         resetPieceBasics();
     }
 
@@ -565,20 +649,20 @@ public class ChessPiece {
      * For 1hop pieces, this is just the position itself.
      * For sliding pieces, additionally all the squares in between
      * @param pos - target position (excluded)
-     * @return list of squares able to block my way to pos, from this piece's myPos (included) to pos excluded
+     * @return list of squares able to block my way to pos, from this piece's vBdata[0].pos (included) to pos excluded
      */
     public int[] allPosOnWayTo(int pos) {
         int[] ret;
         if (isSlidingPieceType(myPceType)) {
-            int dir = calcDirFromTo(myPos,pos);
+            int dir = calcDirFromTo(vBdata[0].pos, pos);
             assert (dir!=NONE);
-            ret = new int[distanceBetween(myPos,pos)];
-            for (int i=0,p=myPos; p!=pos && i<ret.length; p+=dir, i++)
+            ret = new int[distanceBetween(vBdata[0].pos, pos)];
+            for (int i=0,p=vBdata[0].pos; p!=pos && i<ret.length; p+=dir, i++)
                 ret[i]=p;
         }
         else {
             ret = new int[1];
-            ret[0] = myPos;
+            ret[0] = vBdata[0].pos;
         }
         return ret;
     }
