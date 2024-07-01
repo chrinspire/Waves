@@ -1,5 +1,5 @@
 /*
- *     Waves - Another Wired New Chess Algorithm
+ *     Waves - Another Wired New Chess Engine
  *     Copyright (C) 2024 Christian Ensel
  *
  *     This program is free software: you can redistribute it and/or modify
@@ -14,6 +14,8 @@
  *
  *     You should have received a copy of the GNU General Public License
  *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ *     This file is based on class Evaluation of TideEval v0.48.
  */
 
 package de.ensel.waves;

@@ -1,5 +1,5 @@
 /*
- *     Waves - Another Wired New Chess Algorithm
+ *     Waves - Another Wired New Chess Engine
  *     Copyright (C) 2024 Christian Ensel
  *
  *     This program is free software: you can redistribute it and/or modify

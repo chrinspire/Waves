@@ -1,3 +1,25 @@
+/*
+ *     Waves - Another Wired New Chess Engine
+ *     Copyright (C) 2024 Christian Ensel
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ *     You should have received a copy of the GNU General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ *     Base methods like doAndTestPuzzle() and many test cases have been borrowed
+ *     from the test classes of of TideEval v0.48.
+ */
+
+
 package de.ensel.waves;
 
 import org.junit.jupiter.api.Disabled;
