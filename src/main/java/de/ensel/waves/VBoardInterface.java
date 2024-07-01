@@ -29,30 +29,29 @@ import static de.ensel.chessbasics.ChessBasics.chessBasicRes;
  * of it, esp. for future states, after some moves.
  */
 public interface VBoardInterface {
-
-    // game / board
-    enum GameState {
+    /// const
+    int         MAX_PIECES = 48; // 16 w + 18 b + max 16 Qs promoted from the 16 pawns...
+    enum        GameState {
         NOTSTARTED, ONGOING, DRAW, WHITE_WON, BLACK_WON
     }
-    GameState gameState();
-    boolean isCheck(int color);
-    int getTurnCol();
-    boolean hasLegalMoves(int color);
 
-        // squares & pieces
-    boolean hasPieceOfColorAt(int color, int pos);
+    //// game & board
+    GameState   gameState       ();
+    boolean     isCheck         (int color);
+    int         getTurnCol      ();
+    boolean     hasLegalMoves    (int color);
+    int         getNrOfRepetitions();
 
-    int getNrOfRepetitions();
-
-    boolean isSquareEmpty(int pos);
+    //// squares & pieces
+    boolean     isSquareEmpty(int pos);
+    boolean     hasPieceOfColorAt(int color, int pos);
     Stream<ChessPiece> getPieces();
-    ChessPiece getPieceAt(int pos);
-    int getPiecePos(ChessPiece pce);
+    ChessPiece  getPieceAt(int pos);
+    int         getPiecePos(ChessPiece pce);
 
-    // other
-    int futureLevel();
-
-    boolean isCaptured(ChessPiece piece);
+    ////
+    int         depth();
+    int         futureLevel();
 
     default String getGameStateDescription() {
         GameState s = gameState();
@@ -68,8 +67,11 @@ public interface VBoardInterface {
         return res;
     }
 
-    //// not needed:
+    //// not needed at the moment:
+    // VBoardInterface preBoard();
+    // boolean hasPreBoard(VBoardInterface preBoard);
     // int getNrOfPieces(int color);
+    // boolean isCaptured(ChessPiece piece);
 }
 
 

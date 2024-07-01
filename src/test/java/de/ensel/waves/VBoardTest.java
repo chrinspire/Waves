@@ -57,8 +57,8 @@ class VBoardTest {
         assertEquals(true, vBoard.hasPieceOfColorAt(p2.color(), p3Pos));
 
         // repeat :-)
-        vBoard.addMove( p1move );
-        assertEquals(true, vBoard.hasPieceOfColorAt(p1.color(), p3Pos));
+        VBoard vBoard2 = VBoard.createNext(vBoard, p1move );
+        assertEquals(true, vBoard2.hasPieceOfColorAt(p1.color(), p3Pos));
     }
 
     @Test
@@ -93,13 +93,13 @@ class VBoardTest {
         assertEquals(false, vBoard.hasPieceOfColorAt( opponentColor(p3.color()), p3Pos));
 
         // repeat :-)
-        vBoard.addMove( p2.getMove(p2Pos, p3Pos) );
-        assertEquals(true, vBoard.hasPieceOfColorAt(p2.color(), p3Pos));
-        assertEquals(false, vBoard.hasPieceOfColorAt( opponentColor(p2.color()), p3Pos));
+        VBoard vBoard2 = VBoard.createNext(vBoard, p2.getMove(p2Pos, p3Pos) );
+        assertEquals(true, vBoard2.hasPieceOfColorAt(p2.color(), p3Pos));
+        assertEquals(false, vBoard2.hasPieceOfColorAt( opponentColor(p2.color()), p3Pos));
 
         // repeat :-)
-        vBoard.addMove( p1.getMove(p1Pos, p3Pos) );
-        assertEquals(true, vBoard.hasPieceOfColorAt(p1.color(), p3Pos));
-        assertEquals(false, vBoard.hasPieceOfColorAt( opponentColor(p1.color()), p3Pos));
+        VBoard vBoard3 = VBoard.createNext(vBoard2, p1.getMove(p1Pos, p3Pos) );
+        assertEquals(true, vBoard3.hasPieceOfColorAt(p1.color(), p3Pos));
+        assertEquals(false, vBoard3.hasPieceOfColorAt( opponentColor(p1.color()), p3Pos));
     }
 }

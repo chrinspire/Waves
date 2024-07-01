@@ -117,10 +117,9 @@ public class Square {
     }
 
     ChessPiece cheapestDefenderHereForPieceAfter(ChessPiece pce, VBoardInterface fbAfter) {
-        return getMovesToHere()
+        return getMovesToHere(pce.color())
                 .filter(move ->
-                        move.piece().color() == pce.color()
-                        && move.piece() != pce
+                        move.piece() != pce
                         && move.isDefendingAfter(fbAfter))
                 .map(Move::piece)
                 .min(Comparator.comparingInt(p -> abs(p.getValue())))
@@ -128,10 +127,8 @@ public class Square {
     }
 
     ChessPiece cheapestAttackersOfColorToHereAfter(int color, VBoardInterface fbAfter) {
-        return getMovesToHere()
-                .filter(move ->
-                        move.piece().color() == color
-                        && move.isALegalMoveAfter(fbAfter))
+        return getMovesToHere(color)
+                .filter(move -> move.isALegalMoveAfter(fbAfter))
                 .map(Move::piece)
                 .min(Comparator.comparingInt(p -> abs(p.getValue())))
                 .orElse(null);
@@ -232,6 +229,10 @@ public class Square {
      */
     public Stream<Move> getMovesToHere() {
         return depMovesEnd.stream();
+    }
+
+    public Stream<Move> getMovesToHere(int color) {
+        return depMovesEnd.stream().filter(move -> move.piece().color() == color);
     }
 
     /**

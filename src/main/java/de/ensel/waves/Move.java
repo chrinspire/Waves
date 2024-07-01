@@ -322,17 +322,19 @@ public class Move implements Comparable<Move> {
     }
 
     public boolean isALegalMoveAfter(VBoardInterface fb) {
-        if (fb.isCaptured(piece()))
+        int pos = fb.getPiecePos(piece());
+        if ( pos == NOWHERE )  //was: fb.isCaptured(piece())
             return false;
-        return piece().posAfter(fb) == from()   // piece is still here
+        return pos == from()   // piece is still here
                 && !isBlockedByKingPin(fb)
                 && myPiece.isADirectMoveAfter(this, fb);
     }
 
     public boolean isDefendingAfter(VBoardInterface fb) {
-        if (fb.isCaptured(piece()))
+        int pos = fb.getPiecePos(piece());
+        if ( pos == NOWHERE )  //was: fb.isCaptured(piece())
             return false;
-        return piece().posAfter(fb) == from()  // piece is still here
+        return pos == from()  // piece is still here
                 && !isBlockedByKingPin(fb)
                 && myPiece.isDefendingTargetAfter(this, fb);
     }

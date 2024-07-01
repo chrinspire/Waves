@@ -78,7 +78,7 @@ public class ChessBoard implements VBoardInterface {
      */
     private ChessPiece[] piecesOnBoard;
     private int nextFreePceID;
-    public static final int NO_PIECE_ID = -1;
+    public static final int NO_PIECE_ID = -1;  //todo: why not using EMPTY from ChessBasics piece types?
 
     int countOfWhitePieces;  // todo: make array with colorindex
     private int countOfBlackPieces;
@@ -188,14 +188,19 @@ public class ChessBoard implements VBoardInterface {
         // but the older CHessBoard is.
     }
 
+    @Override
+    public int depth() {
+        return 0;
+    }
+
     int getPieceIdAt(int pos) {
         return boardSquares[pos].myPieceID();
     }
 
-    @Override
-    public boolean isCaptured(ChessPiece pce) {
-        return pce.pos() == NOWHERE;
-    }
+//    @Override
+//    public boolean isCaptured(ChessPiece pce) {
+//        return pce.pos() == NOWHERE;
+//    }
 
     @Override
     public boolean hasPieceOfColorAt(int color, int pos) {
@@ -1627,6 +1632,11 @@ public class ChessBoard implements VBoardInterface {
     public boolean hasLegalMoves(int color){
         return nrOfLegalMoves[color] > 0;
     }
+
+//    @Override
+//    public VBoardInterface preBoard() {
+//        return null;
+//    }
 
     public int getKingPos(int color){
         return isWhite(color) ? whiteKingPos : blackKingPos;

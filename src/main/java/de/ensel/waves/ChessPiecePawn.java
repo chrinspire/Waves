@@ -28,7 +28,7 @@ public class ChessPiecePawn extends ChessPiece {
 
     @Override
     public Move getDirectMoveAfter(int toPos, VBoardInterface fb) {
-        int fromPos = posAfter(fb);
+        int fromPos = fb.getPiecePos(this);
         if (exceptionNotPossibleForPawnAfter(fromPos, toPos, fb))
             return null;
         return getMove(fromPos, toPos);

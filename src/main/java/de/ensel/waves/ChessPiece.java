@@ -153,13 +153,13 @@ public class ChessPiece {
     }
 
     public Move getDirectMoveAfter(int toPos, VBoardInterface fb) {
-        int fromPos = posAfter(fb);
+        int fromPos = fb.getPiecePos(this);
         return getMove(fromPos, toPos);
     }
 
 
     public Evaluation getMoveToEvalAfter(int toPos, VBoardInterface fb) {
-        int fromPos = posAfter(fb);
+        int fromPos = fb.getPiecePos(this);
         Move evaluatedMove = getEvaluatedMoveToAfter(getMove(fromPos, toPos), fb);
         if (evaluatedMove == null)
             return null;
@@ -309,17 +309,15 @@ public class ChessPiece {
         return res;
     }
 
-    private Evaluation getMoveEvalInclFollowUpAfter(Move move, VBoard fb) {
-        return getMoveEvalInclFollowUpAfter(move, fb, VBoard.createNext(fb, move));
-    }
 
     /** returns the potential benefit of capturing with this move + checks if recapturing is reasonably possible
      *  (after some guessing, not precise!) for the opponent. If so, this is also calculated in.
      * @param move
-     * @param fbNext
+     * @param fb
      * @return
      */
-    private Evaluation getMoveEvalInclFollowUpAfter(Move move, VBoardInterface fb, VBoardInterface fbNext) {
+    private Evaluation getMoveEvalInclFollowUpAfter(Move move, VBoard fb) {
+        VBoardInterface fbNext = VBoard.createNext(fb, move);
         Evaluation atToSqEval = move.getSimpleMoveEvalAfter(fb);
         Evaluation oppFUpEval = getFollowUpEvalAtSqAfter(move.toSq(), fbNext);
         if (oppFUpEval != null && oppFUpEval.isGoodForColor(opponentColor(move.piece().color()))) {
@@ -386,7 +384,7 @@ public class ChessPiece {
         Move bestDefenceMove = null;
         for (Iterator<Move> it = coveringMovesAfter(fbAfter).iterator(); it.hasNext(); ) {
             Move move = it.next();
-            if (move.to() == posAfter(fb))
+            if (move.to() == fb.getPiecePos(this))
                 continue;; // I was not covering myself before the move and I will not do so after the move...
             Evaluation evalBefore = getFollowUpEvalAtSqAfter(move.toSq(), fb);
             if (evalBefore == null)
@@ -427,8 +425,8 @@ public class ChessPiece {
 
     public Stream<Move> legalMovesAfter(VBoardInterface fb) {
         assert(moves != null);
-        assert(moves[posAfter(fb)] != null);
-        int fromPos = posAfter(fb);
+        assert(moves[fb.getPiecePos(this)] != null);
+        int fromPos = fb.getPiecePos(this);
         // no? Todo:check: assert(!moves[posAfter(fb)].isEmpty());
         List<Move> legalMoves = new ArrayList<>();
         //Todo: cache and reset after a real move
@@ -447,8 +445,8 @@ public class ChessPiece {
      */
     public Stream<Move> coveringMovesAfter(VBoardInterface fb) {
         assert(moves != null);
-        assert(moves[posAfter(fb)] != null);
-        int fromPos = posAfter(fb);
+        assert(moves[fb.getPiecePos(this)] != null);
+        int fromPos = fb.getPiecePos(this);
         // no? Todo:check:  assert(!moves[posAfter(fb)].isEmpty());
         List<Move> legalMoves = new ArrayList<>();
         //Todo: cache and reset after a real move
@@ -466,7 +464,7 @@ public class ChessPiece {
     }
 
     public boolean isADirectMoveAfter(Move move, VBoardInterface fb) {
-        if (move.toSq().hasPieceOfColorAfter(color(), fb))
+        if ( fb.hasPieceOfColorAt(color(), move.toSq().pos())  )  // move.toSq().hasPieceOfColorAfter(color(), fb))
             return false; // target already occupied
         return isDefendingTargetAfter(move, fb);
     }
@@ -525,13 +523,6 @@ public class ChessPiece {
 
     private Stream<Move> allMoves() {
         return moves[pos()].stream();
-    }
-
-
-    //// BoardChange dependent analogies for getters
-
-    public int posAfter(VBoardInterface bc) {
-        return bc.getPiecePos(this);
     }
 
 

@@ -226,7 +226,7 @@ class ChessPieceTest {
     private static void assertEval4MoveToAfter(ChessPiece p, int pos, int targetEvalAt0, VBoardInterface fb ) {
         System.out.print("Test: eval for " + p + " to " + squareName(pos) + ":");
         Evaluation result = p.getMoveToEvalAfter(pos, fb);
-        System.out.println("    Result=" + result + ".");
+        System.out.println("    Result=" + result + " " + result.getReason() + ".");
         assertEquals( targetEvalAt0, result == null ? null : result.getEvalAt(0) );
     }
 
@@ -256,7 +256,7 @@ class ChessPieceTest {
         ChessPiece p3 = board.getPieceAt(p3Pos);
 
         // so far same setup as above, but evaluation different as now it is looked at the board after the move b7c7
-        VBoard fb = VBoard.createNext(board, p1.getDirectMove(p1ToPos));
+        VBoard fb = VBoard.createNext(board, p1.getDirectMoveAfter(p1ToPos, board));
         p1Pos = p1ToPos;
 
         assertCannotMoveToAfter(p1, p2Pos, fb);
@@ -272,9 +272,9 @@ class ChessPieceTest {
         // 5  b.░░░   ░░░   ░░░   ░░░
         // 4 ░░░^b ░░░   ░░░   ░░░      p2: b or B in opposite color of p1
         //... A  B  C  D  E  F  G  H
-        VBoard fb2 = VBoard.createNext(board, p2.getDirectMove(p2ToPos))
-                .addMove(p1.getDirectMove(p1ToPos));
-        assertEval4MoveToAfter(p2, p1Pos, -p1.getValue(), fb2);
+        VBoard fb2 = VBoard.createNext(board, p2.getDirectMoveAfter(p2ToPos, fb));
+        VBoard fb3 = VBoard.createNext(fb2, p1.getDirectMoveAfter(p1ToPos, fb2));
+        assertEval4MoveToAfter(p2, p1Pos, -p1.getValue(), fb3);
     }
 
     @ParameterizedTest
@@ -302,10 +302,10 @@ class ChessPieceTest {
         // 5  x.░░░   ░░░   ░░░   ░░░
         // 4 ░░░^x ░░░   ░░░   ░░░      p2: rotated between B, b, Q and q
         //... A  B  C  D  E  F  G  H
-        VBoard fb = VBoard.createNext(board, p2.getDirectMove(p2ToPos))
-                .addMove(p1.getDirectMove(p1ToPos));
+        VBoard fb1 = VBoard.createNext(board, p2.getDirectMoveAfter(p2ToPos, board));
+        VBoard fb2 = VBoard.createNext(fb1, p1.getDirectMoveAfter(p1ToPos, fb1));
         StringBuilder result = new StringBuilder();
-        p2.legalMovesAfter(fb)
+        p2.legalMovesAfter(fb2)
                 .sorted(Comparator.comparingInt(Move::hashId))
                 .forEach(m -> {
             result.append(" ");
@@ -337,10 +337,10 @@ class ChessPieceTest {
         // 3    ░░░ r ░░░   ░░░   ░░░
         // 2 ░░░   ░░░   ░░░   ░░░
         //... A  B  C  D  E  F  G  H
-        fb.addMove(p2, p2ToPos2)
-            .addMove(p1, p1ToPos2);
+        VBoard fb3 = VBoard.createNext(fb2, p2.getDirectMoveAfter(p2ToPos2, fb2));
+        VBoard fb4 = VBoard.createNext(fb3, p1.getDirectMoveAfter(p1ToPos2, fb3));
         StringBuilder result2 = new StringBuilder();
-        p2.legalMovesAfter(fb)
+        p2.legalMovesAfter(fb4)
                 .sorted(Comparator.comparingInt(Move::hashId))
                 .forEach(m -> {
                     result2.append(" ");
@@ -349,4 +349,88 @@ class ChessPieceTest {
         System.out.println("Result: " + result + ".");
         assertEquals("e5b8 e5h8 e5c7 e5e7 e5g7 e5d6 e5e6 e5f6 e5a5 e5b5 e5c5 e5d5 e5f5 e5g5 e5h5 e5d4 e5e4 e5f4 e5c3 e5e3 e5g3 e5e2 e5h2 e5e1", result2.toString().trim());
     }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {ROOK, ROOK_BLACK, QUEEN, QUEEN_BLACK})
+    void posAfter_Test(int pceType) {
+        int p1Pos = coordinateString2Pos("b7");
+        int p2Pos = coordinateString2Pos("b4");
+        int p3Pos = coordinateString2Pos("e7");
+        // 8 ░░░   ░░░   ░░░   ░░░
+        // 7    ░X->X ░░░ N ░░░   ░░░   p1: rotated between R, r, Q and q
+        // 6 ░░░   ░░░   ░░░   ░░░      p3: N of same color as p1
+        // 5    ░░░   ░░░   ░░░   ░░░
+        // 4 ░░░ b ░░░   ░░░   ░░░      p2: b or B in opposite color of p1
+        //... A  B  C  D  E  F  G  H
+
+        ChessBoard board = new ChessBoard(FENPOS_EMPTY);
+        board.spawnPieceAt(pceType, p1Pos);
+        ChessPiece p1 = board.getPieceAt(p1Pos);
+        int opponentBishopPceType = (isPieceTypeWhite(pceType) ? BISHOP_BLACK : BISHOP);
+        board.spawnPieceAt(opponentBishopPceType, p2Pos);
+        ChessPiece p2 = board.getPieceAt(p2Pos);
+        int sameColorKnightPceType = (isPieceTypeWhite(pceType) ? KNIGHT : KNIGHT_BLACK);
+        board.spawnPieceAt(sameColorKnightPceType, p3Pos);
+        ChessPiece p3 = board.getPieceAt(p3Pos);
+
+        // 1st move
+        int p1ToPos = coordinateString2Pos("c7");
+        VBoard fb1 = VBoard.createNext(board, p1.getDirectMoveAfter(p1ToPos, board));
+        // 2nd move
+        int p2ToPos = coordinateString2Pos("a5");
+        VBoard fb2 = VBoard.createNext(fb1, p2.getDirectMoveAfter(p2ToPos, fb1));
+        // 3rd move
+        int p1ToPos2 = coordinateString2Pos("c6");
+        VBoard fb3 = VBoard.createNext(fb2, p1.getDirectMoveAfter(p1ToPos2, fb2));
+        // 8 ░░░   ░░░   ░░░   ░░░
+        // 7    ░X-1. ░░░ B ░░░   ░░░   p1: rotated between R, r, Q and q
+        // 6 ░░░   3X░   ░░░   ░░░      p3: same as p1
+        // 5 2b.░░░   ░░░   ░░░   ░░░
+        // 4 ░░░^b ░░░   ░░░   ░░░      p2: b or B in opposite color of p1
+        //... A  B  C  D  E  F  G  H
+
+        // repeat 3 times  (as psAfter in previous boards let's pce assume there was backtracking, but for unchanged boards it should still remember
+        for (int i = 0; i < 3; i++) {
+            System.out.println("Iteration: " + i);
+            assertEquals(p1Pos, ((VBoardInterface) board).getPiecePos(p1));
+            assertEquals(p2Pos, ((VBoardInterface) board).getPiecePos(p2));
+            assertEquals(p3Pos, ((VBoardInterface) board).getPiecePos(p3));
+
+            assertEquals(p1ToPos, ((VBoardInterface) fb1).getPiecePos(p1));
+            assertEquals(p2Pos, ((VBoardInterface) fb1).getPiecePos(p2));
+            assertEquals(p3Pos, ((VBoardInterface) fb1).getPiecePos(p3));
+
+            assertEquals(p1ToPos, ((VBoardInterface) fb2).getPiecePos(p1));
+            assertEquals(p2ToPos, ((VBoardInterface) fb2).getPiecePos(p2));
+            assertEquals(p3Pos, ((VBoardInterface) fb2).getPiecePos(p3));
+
+            assertEquals(p1ToPos2, ((VBoardInterface) fb3).getPiecePos(p1));
+            assertEquals(squareName(p2ToPos), squareName(((VBoardInterface) fb3).getPiecePos(p2)));
+            assertEquals(p3Pos, ((VBoardInterface) fb3).getPiecePos(p3));
+        }
+
+        // but again after asking for the past, what happens if we add another move in the future?
+        assertEquals(p1ToPos, ((VBoardInterface) fb1).getPiecePos(p1));
+        assertEquals(p2Pos, ((VBoardInterface) fb1).getPiecePos(p2));
+        assertEquals(p3Pos, ((VBoardInterface) fb1).getPiecePos(p3));
+        // 4th move
+        int p2ToPos2 = coordinateString2Pos("b6");
+        VBoard fb4 = VBoard.createNext(fb3, p2.getDirectMoveAfter(p2ToPos2, fb3));
+        // 5th move
+        int p1ToPos3 = coordinateString2Pos("b6");  // xb
+        VBoard fb5 = VBoard.createNext(fb4, p1.getDirectMoveAfter(p1ToPos3, fb4));
+
+        assertEquals(p1ToPos3, ((VBoardInterface) fb5).getPiecePos(p1));
+        assertEquals(NOWHERE, ((VBoardInterface) fb5).getPiecePos(p2));
+        assertEquals(p3Pos, ((VBoardInterface) fb3).getPiecePos(p3));
+        // the past again
+        assertEquals(p1Pos, ((VBoardInterface) board).getPiecePos(p1));
+        assertEquals(p2ToPos, ((VBoardInterface) fb2).getPiecePos(p2));
+        // and the actual again
+        assertEquals(p1ToPos3, ((VBoardInterface) fb5).getPiecePos(p1));
+        assertEquals(NOWHERE, ((VBoardInterface) fb5).getPiecePos(p2));
+        assertEquals(p3Pos, ((VBoardInterface) fb3).getPiecePos(p3));
+
+    }
+
 }
