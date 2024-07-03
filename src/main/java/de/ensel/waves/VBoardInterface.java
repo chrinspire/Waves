@@ -41,6 +41,7 @@ public interface VBoardInterface {
     int         getTurnCol      ();
     boolean     hasLegalMoves    (int color);
     int         getNrOfRepetitions();
+    int         captureEvalSoFar();
 
     //// squares & pieces
     boolean     isSquareEmpty(int pos);

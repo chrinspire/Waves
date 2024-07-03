@@ -699,6 +699,11 @@ public class ChessBoard implements VBoardInterface {
         return fullMoves;
     }
 
+    @Override
+    public int captureEvalSoFar() {
+        return 0;
+    }
+
     /**
      * does calcBestMove when necessary (incl. checkAndEvaluateGameOver())
      * @return a string describing a hopefully good move (format "a1b2")
@@ -737,6 +742,7 @@ public class ChessBoard implements VBoardInterface {
         // Compare all moves returned by all my pieces and find the best.
         //Stream<Move> bestOpponentMoves = getBestMovesForColAfter( opponentColor(getTurnCol()), NOCHANGE );
         countCalculatedBoards = 0;
+        setEngParams(new ChessEngineParams(engineP1));
         Stream<Move> bestMoves    = getBestMovesForColAfter( getTurnCol(), engParams, this, Integer.MIN_VALUE, Integer.MAX_VALUE);
         bestMove = bestMoves.findFirst().orElse(null);
         //System.err.println("  --> " + bestMove );
@@ -767,6 +773,7 @@ public class ChessBoard implements VBoardInterface {
                 p.legalMovesAfter(upToNowBoard).forEach( move -> {
                     if (!alphabetabreak[0]) { // like a for-break
                         Move evaluatedMove = p.getEvaluatedMoveToAfter(move, upToNowBoard);
+                        evaluatedMove.addEval(upToNowBoard.captureEvalSoFar(),0);
                         addMoveToSortedListOfCol(evaluatedMove, bestMoveCandidates, color, maxBestMoves + (maxBestMoves >> 1), restMoves);
                         countCalculatedBoards++;
                         countOppMoves[0]++;
@@ -815,6 +822,7 @@ public class ChessBoard implements VBoardInterface {
                             .findFirst().orElse(null);
                     if (bestOppMove != null) {
                         move.addEval(bestOppMove.getEval());
+                        move.addEval(upToNowBoard.captureEvalSoFar(),0);
                         move.getEval().setReason( upToNowBoard + " " + move.toString()
                                 + move.getEval() + " "
                                 + move.getEval().getReason() + " <-- "

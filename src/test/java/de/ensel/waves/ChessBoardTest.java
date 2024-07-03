@@ -64,6 +64,48 @@ public class ChessBoardTest {
         // 4 ░░░ b ░░░   ░░░   ░░░      p2: b or B in opposite color of p1
         //... A  B  C  D  E  F  G  H
 
+        // e7c6 b4d6 b7d7 d6c5 - before d7d4
+        // 8 ░░░   ░░░   ░░░   ░░░
+        // 7    ░.░   ░R░ . ░░░   ░░░
+        // 6 ░░░   ░N░ . ░░░   ░░░
+        // 5    ░░░ b ░░░   ░░░   ░░░
+        // 4 ░░░ . ░░░ * ░░░   ░░░
+        //... A  B  C  D  E  F  G  H
+        //  w:
+        //[_, N, _, X, _, _, _, _,
+        // X, R, R, _, X, R, R, R,
+        // _, _, _, R, _, _, _, _,
+        // N, _, _, _, N, _, _, _,
+        // _, N, _, N, _, _, _, _,  ...]
+        // b:
+        //[_, _, _, _, _, B, _, _,
+        // B, _, _, _, B, _, _, _,
+        // _, B, _, B, _, _, _, _,
+        // _, _, _, _, _, _, _, _,
+        // _, B, _, B, _, _, _, _,
+        // B, _, _, _, B, _, _, _,
+        // _, _, _, _, _, B, _, _,
+        // _, _, _, _, _, _, B, _]
+        //
+        //[_, B, _, _, _, B, _, _,
+        // _, _, B, _, B, _, _, _,
+        // _, _, _, _, _, _, _, _,
+        // _, _, B, _, B, _, _, _,
+        // _, B, _, _, _, B, _, _,
+        // B, _, _, _, _, _, B, _,
+        // _, _, _, _, _, _, _, B,
+        // _, _, _, _, _, _, _, _]
+        //
+        //[_, _, _, _, _, B, _, _,
+        // _, _, _, _, B, _, _, _,
+        // _, _, _, B, _, _, _, _,
+        // B, _, B, _, _, _, _, _,
+        // _, _, _, _, _, _, _, _,
+        // B, _, B, _, _, _, _, _,
+        // _, _, _, B, _, _, _, _,
+        // _, _, _, _, B, _, _, _]
+
+
         ChessBoard board = new ChessBoard(FENPOS_EMPTY);
         board.setEngParams(testEngParams);
         board.spawnPieceAt(pceType, p1Pos);
@@ -175,7 +217,7 @@ public class ChessBoardTest {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", false);
     }
 
-    // choose the one best move in very simple scenarios
+    // choose the one best move in simple scenarios, but with many pieces
     @ParameterizedTest
     @CsvSource({
         "r1bqkbnr/1ppppppp/p1n5/3N4/1P1PPB2/P7/2P2PPP/R2QKBNR b KQk - 1 7, d7d6"      // need to block an attacked piece (where is a fork at the same time)

@@ -39,6 +39,7 @@ public class VBoard implements VBoardInterface {
 
     // for debugging only
     private ChessPiece capturedPiece;
+    private int captureEvalSoFar = 0;
 
 
     //// constructor + factory
@@ -74,6 +75,7 @@ public class VBoard implements VBoardInterface {
         if (preBoard.hasPieceOfColorAt(opponentColor(move.piece().color()), toPos)) {
             capturedPiece = preBoard.getPieceAt(toPos);
             piecePos[capturedPiece.id()] = NOWHERE;
+            captureEvalSoFar -= capturedPiece.getValue();
         }
         piecePos[movingPiece.id()] = toPos;
         return this;
@@ -118,6 +120,11 @@ public class VBoard implements VBoardInterface {
     public int getNrOfRepetitions() {
         //TODO
         return 0;
+    }
+
+    @Override
+    public int captureEvalSoFar() {
+        return captureEvalSoFar;
     }
 
     @Override
