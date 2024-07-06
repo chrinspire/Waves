@@ -40,7 +40,7 @@ public class ChessBoard implements VBoardInterface {
     public static boolean DEBUGMSG_DISTANCES = false;
     public static boolean DEBUGMSG_CLASH_CALCULATION = false;
     public static boolean DEBUGMSG_MOVEEVAL = false;   // <-- best for checking why moves are evaluated the way they are
-    public static boolean DEBUGMSG_MOVESELECTION = true || DEBUGMSG_MOVEEVAL;
+    public static boolean DEBUGMSG_MOVESELECTION = false || DEBUGMSG_MOVEEVAL;
 
     public static boolean SHOW_REASONS = true;  // DEBUGMSG_MOVESELECTION;
 

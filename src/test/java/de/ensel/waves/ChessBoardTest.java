@@ -15,7 +15,7 @@ import static de.ensel.waves.ChessEngineParams.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ChessBoardTest {
-    public static ChessEngineParams testEngParams = new ChessEngineParams(LEVEL_TEST_MID);
+    public static ChessEngineParams testEngParams = new ChessEngineParams(LEVEL_TEST_LONG);
 
     // temporary/debug tests: choose the one best move
     @Disabled
@@ -156,7 +156,9 @@ public class ChessBoardTest {
     // choose the one best move in very simple scenarios
     @ParameterizedTest
     @CsvSource({
-        "r1bqkbnr/1ppppppp/p1n5/3N4/1P1PPB2/P7/2P2PPP/R2QKBNR b KQk - 1 7, d7d6"  // need to block an attacked piece (where is a fork at the same time)
+        "r1bqkbnr/1ppppppp/p1n5/3N4/1P1PPB2/P7/2P2PPP/R2QKBNR b KQk - 1 7, d7d6"      // need to block an attacked piece (where is a fork at the same time)
+        ,"r1b1kbnr/pppp1ppp/4p3/2PP4/1P1n3q/P4N2/4PPPP/RNBQKB1R b KQkq - 2 7, d4f3"
+        ,"1rbqkbnr/p1pppppp/p7/8/3P4/4P3/PPPB1PPP/RN1QK1NR b KQk - 1 4, b8b2"         // take free pawn
     })
     void ChessBoardGetBestMove_moreComplex_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
