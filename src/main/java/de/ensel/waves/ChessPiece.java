@@ -431,16 +431,7 @@ public class ChessPiece {
     public List<Move> legalMovesAfter(VBoard fb) {
         assert(moves != null);
         assert(moves[fb.getPiecePos(this)] != null);
-        int fromPos = fb.getPiecePos(this);
-        // no? Todo:check: assert(!moves[posAfter(fb)].isEmpty());
-        List<Move> legalMoves = new ArrayList<>();
-        //Todo: cache and reset after a real move
-        //loop over all moves and take the ones that are legal now
-        for (Move m : moves[fromPos]) {
-            if (m.isALegalMoveAfter(fb))
-                legalMoves.add(m);
-        }
-        return legalMoves;
+        return internalGetMoves(fb, false);
     }
 
     public Stream<Move> legalMovesStreamAfter(VBoard fb) {
@@ -455,16 +446,43 @@ public class ChessPiece {
     public List<Move> coveringMovesAfter(VBoard fb) {
         assert(moves != null);
         assert(moves[fb.getPiecePos(this)] != null);
+        return internalGetMoves(fb, true);
+    }
+
+    private List<Move> internalGetMoves(VBoard fb, boolean includeCovering) {
         int fromPos = fb.getPiecePos(this);
         // no? Todo:check:  assert(!moves[posAfter(fb)].isEmpty());
-        List<Move> legalMoves = new ArrayList<>();
+        List<Move> moves = new ArrayList<>();
         //Todo: cache and reset after a real move
         //loop over all moves and check if the moves are legal or covering an own piece
-        for (Move m : moves[fromPos]) {
-            if (m.isCoveringAfter(fb))
-                legalMoves.add(m);
+        if (isSlidingPieceType(pieceType())) {
+            // for non-sliding pieces, the generic move/toPos list is not performant enough, as it does not stop after hitting a piece
+            int[] dirs = pieceDirections(pieceType());
+            for (int d : dirs) {
+                int pos = fromPos;
+                // loop along the direction d until we hit something
+                while (plusDirIsStillLegal(pos, d)) {
+                    pos += d;
+                    if (!fb.isSquareEmpty(pos)) {
+                        if (includeCovering || fb.hasPieceOfColorAt(opponentColor(color()), pos))
+                            moves.add(getMove(fromPos, pos));
+                        break;
+                    }
+                    moves.add(getMove(fromPos, pos));
+                }
+            }
         }
-        return legalMoves;
+        else {
+            // for non-sliding pieces, we can easily use our generic move/toPos list
+            for (Move m : this.moves[fromPos]) {
+                if ( m.isALegalMoveAfter(fb)
+                        || includeCovering && m.isCoveringAfter(fb)
+                ) {
+                    moves.add(m);
+                }
+            }
+        }
+        return moves;
     }
 
     public Stream<Move> coveringMovesStreamAfter(VBoard fb) {
