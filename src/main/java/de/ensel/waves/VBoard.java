@@ -49,10 +49,9 @@ public class VBoard implements VBoardInterface {
         // this.preBoard = preBoard;
         if (preBoard instanceof ChessBoard) {
             this.baseBoard = (ChessBoard)preBoard;
-            piecePos = new int[MAX_PIECES];
-            Arrays.fill(piecePos, POS_UNSET);
-            moves = new Move[ChessEngineParams.MAX_SEARCH_DEPTH+3];  // + lookahead of primitive eval method
             this.piecePos = new int[MAX_PIECES];
+            Arrays.fill(this.piecePos, POS_UNSET);
+            moves = new Move[ChessEngineParams.MAX_SEARCH_DEPTH+3];  // + lookahead of primitive eval method
             Arrays.fill(this.piecePos, POS_UNSET);
             return;
         }

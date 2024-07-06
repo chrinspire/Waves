@@ -423,7 +423,11 @@ public class ChessPiece {
         return false;
     }
 
-    public Stream<Move> legalMovesAfter(VBoardInterface fb) {
+    public Stream<Move> legalMovesStreamAfter(VBoardInterface fb) {
+        return legalMovesAfter(fb).stream();
+    }
+
+    public List<Move> legalMovesAfter(VBoardInterface fb) {
         assert(moves != null);
         assert(moves[fb.getPiecePos(this)] != null);
         int fromPos = fb.getPiecePos(this);
@@ -435,7 +439,7 @@ public class ChessPiece {
             if (m.isALegalMoveAfter(fb))
                 legalMoves.add(m);
         }
-        return legalMoves.stream();
+        return legalMoves;
     }
 
     /**
