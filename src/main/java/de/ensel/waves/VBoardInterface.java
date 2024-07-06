@@ -48,7 +48,7 @@ public interface VBoardInterface {
     boolean     hasPieceOfColorAt(int color, int pos);
     Stream<ChessPiece> getPieces();
     Stream<ChessPiece> getPieces(int color);
-
+    int         getNrOfPieces   (int color);  // nr of pieces on the board, incl. kings - can get 0 for testboards without king
     ChessPiece  getPieceAt(int pos);
     int         getPiecePos(ChessPiece pce);
 

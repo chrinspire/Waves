@@ -32,7 +32,7 @@ import static java.lang.Math.abs;
  * perspective for [now, in one move, in 2 moves,...] called future levels.
  */
 public class Evaluation {
-    public static final int MAX_EVALDEPTH = 8;
+    public static final int MAX_EVALDEPTH = 4;
     private int[] rawEval;
     private String reason = null;
 

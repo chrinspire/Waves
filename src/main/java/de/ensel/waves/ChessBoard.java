@@ -80,8 +80,6 @@ public class ChessBoard extends VBoard {
     private int nextFreePceID;
     public static final int NO_PIECE_ID = -1;  //todo: why not using EMPTY from ChessBasics piece types?
 
-    int countOfWhitePieces;  // todo: make array with colorindex
-    private int countOfBlackPieces;
     private int[] countBishops = new int[2];  // count bishops for colorIndex
     private int[] countKnights = new int[2];  // count knights for colorIndex
     private int[][] countPawnsInFile = new int[2][NR_FILES];  // count pawns in particular file for colorIndex
@@ -133,8 +131,7 @@ public class ChessBoard extends VBoard {
 
     private void emptyBoard() {
         piecesOnBoard = new ChessPiece[MAX_PIECES];
-        countOfWhitePieces = 0;
-        countOfBlackPieces = 0;
+        initNrOfPieces();
         for (int ci=0; ci<=1; ci++) {
             countBishops[ci] = 0;
             countKnights[ci] = 0;
@@ -238,7 +235,7 @@ public class ChessBoard extends VBoard {
     /////
 
     private void checkAndEvaluateGameOver() {    // called to check+evaluate if there are no more moves left or 50-rules-move is violated
-        if (countOfWhitePieces <= 0 || countOfBlackPieces <= 0) {
+        if (getNrOfPieces(CIWHITE) <= 0 || getNrOfPieces(CIBLACK) <= 0) {
             gameOver = true;
         } else if (isCheck(getTurnCol()) && nrOfLegalMoves(getTurnCol()) == 0) {
             gameOver = true;
@@ -440,11 +437,11 @@ public class ChessBoard extends VBoard {
         assert (nextFreePceID <= MAX_PIECES);
         assert (pos >= 0 && pos < NR_SQUARES);
         if (isPieceTypeWhite(pceType)) {
-            countOfWhitePieces++;
+            incNrOfPieces(CIWHITE);
             if (pceType == KING)
                 whiteKingPos = pos;
         } else {
-            countOfBlackPieces++;
+            incNrOfPieces(CIBLACK);
             if (pceType == KING_BLACK)
                 blackKingPos = pos;
         }
@@ -772,7 +769,6 @@ public class ChessBoard extends VBoard {
                 p.legalMovesAfter(upToNowBoard).forEach( move -> {
                     if (!alphabetabreak[0]) { // like a for-break
                         Move evaluatedMove = p.getEvaluatedMoveToAfter(move, upToNowBoard);
-                        evaluatedMove.addEval(upToNowBoard.captureEvalSoFar(),0);
                         addMoveToSortedListOfCol(evaluatedMove, bestMoveCandidates, color, maxBestMoves + (maxBestMoves >> 1), restMoves);
                         countCalculatedBoards++;
                         countOppMoves[0]++;
@@ -1382,10 +1378,7 @@ public class ChessBoard extends VBoard {
         //updateHash(takenFigNr, topos);
         ChessPiece p = getPieceAt(topos);
         piecesOnBoard[p.id()] = null;
-        if (p.isWhite())
-            countOfWhitePieces--;
-        else
-            countOfBlackPieces--;
+        decNrOfPieces(p.color());
 
         int pceType = p.pieceType();
         switch (colorlessPieceType(pceType)) {
@@ -1469,10 +1462,6 @@ public class ChessBoard extends VBoard {
     public Stream<ChessPiece> getPieces(int color) {
         return getPieces()
                 .filter(p -> p.color() == color);
-    }
-
-    public int getNrOfPieces(int color) {
-        return color == CIWHITE ? countOfWhitePieces : countOfBlackPieces;
     }
 
 
@@ -1605,15 +1594,6 @@ public class ChessBoard extends VBoard {
 
 
     //// getter
-
-    public int getPieceCounter() {
-        return countOfWhitePieces + countOfBlackPieces;
-    }
-
-    public int getPieceCounterForColor(int color){
-        return isWhite(color) ? countOfWhitePieces
-                : countOfBlackPieces;
-    }
 
     public int getLightPieceCounterForPieceType(int pceType ){
         int ci = colorIndex(colorOfPieceType(pceType));

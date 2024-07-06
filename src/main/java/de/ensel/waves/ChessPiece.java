@@ -311,7 +311,9 @@ public class ChessPiece {
             }
         }
 
-        Move res = new Move(move2Bevaluated).setEval(eval);
+        Move res = new Move(move2Bevaluated)
+                .setEval(eval)
+                .addEval(fb.captureEvalSoFar(),0);
         return res;
     }
 

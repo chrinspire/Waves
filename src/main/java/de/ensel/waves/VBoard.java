@@ -31,9 +31,10 @@ public class VBoard implements VBoardInterface {
     // VBoardInterface preBoard;
 
     // superseding data
-    final private int[] piecePos; // = new int[MAX_PIECES];
+    private final int[] piecePos; // = new int[MAX_PIECES];
     private final Move[] moves;
     private int nrOfMoves = 0;
+    private final int[] countPieces = new int[2];
 
     // for debugging only
     private ChessPiece capturedPiece;
@@ -47,7 +48,9 @@ public class VBoard implements VBoardInterface {
         moves = new Move[ChessEngineParams.MAX_SEARCH_DEPTH+3];  // + lookahead of primitive eval method
     }
 
-    private VBoard(VBoardInterface preBoard) {
+    private VBoard(VBoard preBoard) {
+        this.countPieces[CIWHITE] = preBoard.countPieces[CIWHITE];
+        this.countPieces[CIBLACK] = preBoard.countPieces[CIBLACK];
         // this.preBoard = preBoard;
         if (preBoard instanceof ChessBoard) {
             this.baseBoard = (ChessBoard)preBoard;
@@ -67,7 +70,7 @@ public class VBoard implements VBoardInterface {
     }
 
     // factory, based on a VBoardInterface (VBoard or ChesBoard) + one move
-    public static VBoard createNext(VBoardInterface preBoard, Move plusOneMove) {
+    public static VBoard createNext(VBoard preBoard, Move plusOneMove) {
         VBoard newVB = new VBoard(preBoard);
         newVB.addMove(preBoard, plusOneMove);
         return newVB;
@@ -84,6 +87,7 @@ public class VBoard implements VBoardInterface {
             capturedPiece = preBoard.getPieceAt(toPos);
             piecePos[capturedPiece.id()] = NOWHERE;
             captureEvalSoFar -= capturedPiece.getValue();
+            decNrOfPieces(capturedPiece.color());
         }
         else {
             capturedPiece = null;
@@ -93,7 +97,12 @@ public class VBoard implements VBoardInterface {
     }
 
 
-    ////
+
+    //// getter
+
+    public int getNrOfPieces(int color) {
+        return countPieces[color];
+    }
 
 //    public List<Move> getMoves() {
 //        return this.moves;
@@ -262,6 +271,22 @@ public class VBoard implements VBoardInterface {
     }
 
 
+    //// setter
+
+    protected void initNrOfPieces() {
+        countPieces[CIWHITE] = 0;
+        countPieces[CIBLACK] = 0;
+    }
+
+    protected void incNrOfPieces(int color) {
+        countPieces[color]++;
+    }
+
+    protected void decNrOfPieces(int color) {
+        countPieces[color]--;
+    }
+
+
     //// internal helpers
 
     /**
@@ -280,5 +305,8 @@ public class VBoard implements VBoardInterface {
         }
         return foundAt;
     }
+
+
+
 }
 
