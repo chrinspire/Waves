@@ -254,6 +254,7 @@ class ChessPieceTest {
         int sameColorKnightPceType = (isPieceTypeWhite(pceType) ? KNIGHT : KNIGHT_BLACK);
         board.spawnPieceAt(sameColorKnightPceType, p3Pos);
         ChessPiece p3 = board.getPieceAt(p3Pos);
+        board.completePreparation();
 
         // so far same setup as above, but evaluation different as now it is looked at the board after the move b7c7
         VBoard fb = VBoard.createNext(board, p1.getDirectMoveAfter(p1ToPos, board));
@@ -262,6 +263,7 @@ class ChessPieceTest {
         assertCannotMoveToAfter(p1, p2Pos, fb);
         assertCannotMoveToAfter(p2, p1Pos, fb);
         assertEval4MoveToAfter(p2, p3Pos, 0, fb);  // now "0" after evaluation learned about simple recaptures. was: -p3.getValue(), fb);
+        // with CBR? assertEval4MoveToAfter(p2, p3Pos, evalForColor(21, colorFromColorIndex(p1.color())), fb);  // now "0" after evaluation learned about simple recaptures. was: -p3.getValue(), fb);
         assertCannotMoveToAfter(p1, p3Pos, fb);
 
         // additional test with two moves

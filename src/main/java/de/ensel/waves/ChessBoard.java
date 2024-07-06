@@ -33,7 +33,7 @@ import static java.text.MessageFormat.format;
 public class ChessBoard extends VBoard {   // was implements VBoardInterface { but there came up to many common code and even same instance data
     public static final ResourceBundle chessBoardRes = ResourceBundle.getBundle("de.ensel.chessboardres");
 
-    private ChessEngineParams engParams = new ChessEngineParams();
+    private ChessEngineParams engParams = null; // new ChessEngineParams();
 
     /**
      * configure here which debug messages should be printed
@@ -741,7 +741,8 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
         // Compare all moves returned by all my pieces and find the best.
         //Stream<Move> bestOpponentMoves = getBestMovesForColAfter( opponentColor(getTurnCol()), NOCHANGE );
         countCalculatedBoards = 0;
-        //setEngParams(new ChessEngineParams(engineP1));
+        if (engParams==null)
+            setEngParams(new ChessEngineParams(engineP1));
         Stream<Move> bestMoves    = getBestMovesForColAfter( getTurnCol(), engParams, this, Integer.MIN_VALUE, Integer.MAX_VALUE);
         bestMove = bestMoves.findFirst().orElse(null);
         //System.err.println("  --> " + bestMove );

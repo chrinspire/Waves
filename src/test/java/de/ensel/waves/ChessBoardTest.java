@@ -37,7 +37,8 @@ import static de.ensel.waves.ChessEngineParams.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ChessBoardTest {
-    public static ChessEngineParams testEngParams = new ChessEngineParams(LEVEL_TEST_MID);
+    //public static ChessEngineParams testEngParams = new ChessEngineParams(LEVEL_TEST_MID);
+    static final int DEFAULT_TEST_ENGINE_LEVEL = LEVEL_TEST_MID;
 
     // temporary/debug tests: choose the one best move
     @Disabled
@@ -107,7 +108,7 @@ public class ChessBoardTest {
 
 
         ChessBoard board = new ChessBoard(FENPOS_EMPTY);
-        board.setEngParams(testEngParams);
+        board.setEngParams(new ChessEngineParams(DEFAULT_TEST_ENGINE_LEVEL));
         board.spawnPieceAt(pceType, p1Pos);
         int opponentBishopPceType = (isPieceTypeWhite(pceType) ? BISHOP_BLACK : BISHOP);
         board.spawnPieceAt(opponentBishopPceType, p2Pos);
@@ -232,7 +233,7 @@ public class ChessBoardTest {
     public static void doAndTestPuzzle(String fen, String expectedMoves, String themes, boolean debugmoves) {
         //ChessBoard.DEBUGMSG_MOVEEVAL = debugmoves;
         ChessBoard.DEBUGMSG_MOVESELECTION = debugmoves;
-        ChessBoard board = new ChessBoard(themes, fen, testEngParams);
+        ChessBoard board = new ChessBoard(themes, fen, new ChessEngineParams(DEFAULT_TEST_ENGINE_LEVEL));
         String[] splitt = expectedMoves.trim().split(" ", 2);
         if (splitt.length==2 && splitt[1]!=null && splitt[1].length()>0) {
             // if expected moves is a series of moves, then the very first is still before the puzzle and must be moved first...
