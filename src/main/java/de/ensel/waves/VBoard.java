@@ -18,15 +18,12 @@
 
 package de.ensel.waves;
 
-import de.ensel.waves.clashes.CoverageBitMap;
-
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.waves.VBoardInterface.GameState.*;
-import static de.ensel.waves.clashes.Clashes.calcBiasedClash;
 
 public class VBoard implements VBoardInterface {
     public static int usageCounter = 0;
