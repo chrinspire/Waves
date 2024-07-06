@@ -377,5 +377,9 @@ public class Move implements Comparable<Move> {
         return 0;
     }
 
+    public boolean mates() {
+        return isCheckmateEvalFor(getEval().getEvalAt(0), opponentColor(piece().color()));
+    }
+
 }
 

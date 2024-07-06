@@ -160,6 +160,8 @@ public class VBoard implements VBoardInterface {
             return ONGOING;
         if (isCheck(turn))
             return isWhite(turn) ? BLACK_WON : WHITE_WON;
+        if (getNrOfPieces(turn) == 0)        // only for test boards - capturing the last (i.e. on a board without king) is a win.
+            return isWhite(turn) ? BLACK_WON : WHITE_WON;
         return DRAW;
     }
 
@@ -212,6 +214,35 @@ public class VBoard implements VBoardInterface {
     public int futureLevel() {
         // TODO/idea: do not count forcing moves
         return nrOfMoves;
+    }
+
+    /**
+     * Checks if the game has ended and sets the eval accordingly.
+     * @param move
+     * @param nextBoard
+     * @param debugOutputprefix
+     * @return true if the game has ended, false otherwise
+     */
+    protected boolean checkAndSetGameEndEval(Move move, VBoard nextBoard, String debugOutputprefix) {
+        if (!nextBoard.hasLegalMoves(opponentColor(move.piece().color()))) {  // be sure it was not null due to not wanting to calc deeper any more
+            GameState state = nextBoard.gameState();
+            if (state == DRAW) {
+                //TODO: use -piece-value-sum or other board evaluation here, so we do not like draws with more pieces on the board
+                Evaluation drawEval = new Evaluation(0, 0);
+                move.addEval(drawEval);
+            }
+            else {
+                move.addEval(new Evaluation(ChessBoard.checkmateEvalIn(nextBoard.getTurnCol(), depth()), 0));
+            }
+            move.getEval().setReason((this instanceof ChessBoard ? "" : this)
+                    + " " + move + "!" + nextBoard.getGameStateDescription(nextBoard.gameState()) + "!");
+            if (ChessBoard.DEBUGMSG_MOVESELECTION /* && upToNowBoard.futureLevel() == 0 */)
+                ChessBoard.debugPrintln(ChessBoard.DEBUGMSG_MOVESELECTION, debugOutputprefix
+                        + "Reevaluated " /*+ move + " to " + move.getEval()
+                        + " reason: " */ + move.getEval().getReason());
+            return state != DRAW;
+        }
+        return false;
     }
 
     @Override

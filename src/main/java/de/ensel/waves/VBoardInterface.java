@@ -56,8 +56,7 @@ public interface VBoardInterface {
     int         depth();
     int         futureLevel();
 
-    default String getGameStateDescription() {
-        GameState s = gameState();
+    default String getGameStateDescription(GameState s) {
         String res = switch (s) {
             case WHITE_WON -> chessBasicRes.getString("state.whiteWins");
             case BLACK_WON -> chessBasicRes.getString("state.blackWins");
@@ -65,8 +64,8 @@ public interface VBoardInterface {
             case NOTSTARTED -> chessBasicRes.getString("state.notStarted");
             case ONGOING -> chessBasicRes.getString("state.ongoing");
         };
-        if (getNrOfRepetitions() > 0)
-            res += " (" + getNrOfRepetitions() + " " + chessBasicRes.getString("repetitions") + ")";
+//        if (getNrOfRepetitions() > 0)
+//            res += " (" + getNrOfRepetitions() + " " + chessBasicRes.getString("repetitions") + ")";
         return res;
     }
 

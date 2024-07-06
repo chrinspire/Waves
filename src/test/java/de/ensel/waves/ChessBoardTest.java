@@ -214,7 +214,7 @@ public class ChessBoardTest {
         ,"5k2/8/3r2q1/8/1R6/P7/1P2r1R1/K7 w - - 0 1, g2e2"      // take q and lose R? better take r (+#)
     })
     void ChessBoardGetBestMove_Basics_Test(String fen, String expectedBestMove) {
-        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", false);
     }
 
     // choose the one best move in simple scenarios, but with many pieces
@@ -225,7 +225,7 @@ public class ChessBoardTest {
         ,"1rbqkbnr/p1pppppp/p7/8/3P4/4P3/PPPB1PPP/RN1QK1NR b KQk - 1 4, b8b2"         // take free pawn
     })
     void ChessBoardGetBestMove_moreComplex_Test(String fen, String expectedBestMove) {
-        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", false);
     }
 
 

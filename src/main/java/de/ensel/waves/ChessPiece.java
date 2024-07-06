@@ -165,7 +165,7 @@ public class ChessPiece {
 
     public Evaluation getMoveToEvalAfter(int toPos, VBoard fb) {
         int fromPos = fb.getPiecePos(this);
-        Move evaluatedMove = getEvaluatedMoveToAfter(getMove(fromPos, toPos), fb);
+        Move evaluatedMove = evaluateMoveAfter(getMove(fromPos, toPos), fb);
         if (evaluatedMove == null)
             return null;
         return evaluatedMove.getEval();
@@ -176,10 +176,15 @@ public class ChessPiece {
      * @param fb future board as VBoardInterface
      * @return a new evaluated Move
      */
-    public Move getEvaluatedMoveToAfter(Move move2Bevaluated, VBoard fb) {
+    public Move evaluateMoveAfter(Move move2Bevaluated, VBoard fb) {
         if (move2Bevaluated == null || !move2Bevaluated.isALegalMoveAfter(fb))
             return null;
         VBoard fbAfter = VBoard.createNext(fb, move2Bevaluated);
+
+        Move result = new Move(move2Bevaluated);
+        if (fb.checkAndSetGameEndEval(result, fbAfter, ""))
+            return result;
+
         if (DEBUGMSG_MOVEEVAL)
             System.out.println("Evaluating move " + move2Bevaluated + " after <"+fb+">:");
 
