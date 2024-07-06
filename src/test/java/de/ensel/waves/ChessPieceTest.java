@@ -216,14 +216,14 @@ class ChessPieceTest {
         assertEquals( targetEvalAt0, result == null ? null : result.getEvalAt(0) );
     }
 
-    private static void assertCannotMoveToAfter(ChessPiece p, int pos, VBoardInterface fb) {
+    private static void assertCannotMoveToAfter(ChessPiece p, int pos, VBoard fb) {
         System.out.print("Test: Impossible for " + p + " to go to " + squareName(pos) + ":");
         Evaluation result = p.getMoveToEvalAfter(pos, fb);
         System.out.println("    Result = " + result + ".");
         assertEquals( null, result );
     }
 
-    private static void assertEval4MoveToAfter(ChessPiece p, int pos, int targetEvalAt0, VBoardInterface fb ) {
+    private static void assertEval4MoveToAfter(ChessPiece p, int pos, int targetEvalAt0, VBoard fb ) {
         System.out.print("Test: eval for " + p + " to " + squareName(pos) + ":");
         Evaluation result = p.getMoveToEvalAfter(pos, fb);
         System.out.println("    Result=" + result + " " + result.getReason() + ".");

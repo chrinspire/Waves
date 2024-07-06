@@ -32,7 +32,7 @@ public class VBoard implements VBoardInterface {
 
     // superseding data
     final private int[] piecePos; // = new int[MAX_PIECES];
-    private Move[] moves;
+    private final Move[] moves;
     private int nrOfMoves = 0;
 
     // for debugging only
@@ -41,6 +41,11 @@ public class VBoard implements VBoardInterface {
 
 
     //// constructor + factory
+
+    protected VBoard() {
+        this.piecePos = new int[MAX_PIECES];
+        moves = new Move[ChessEngineParams.MAX_SEARCH_DEPTH+3];  // + lookahead of primitive eval method
+    }
 
     private VBoard(VBoardInterface preBoard) {
         // this.preBoard = preBoard;
@@ -60,7 +65,6 @@ public class VBoard implements VBoardInterface {
         this.piecePos = Arrays.copyOf(preVB.piecePos, preVB.piecePos.length);
         this.capturedPiece = null;
     }
-
 
     // factory, based on a VBoardInterface (VBoard or ChesBoard) + one move
     public static VBoard createNext(VBoardInterface preBoard, Move plusOneMove) {

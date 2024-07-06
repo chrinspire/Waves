@@ -23,12 +23,10 @@ package de.ensel.waves;
 import de.ensel.chessbasics.ChessBasics;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Stream;
 import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.waves.ChessBoard.*;
-import static java.lang.Math.abs;
 import static java.lang.Math.max;
 
 public class ChessPiece {
@@ -73,6 +71,7 @@ public class ChessPiece {
     }
 
     private void setupMovesWithDependencies(int[][] moveMatrix) {
+        //todo: do not discriminate colors, except for pawns
         moves = new MovesCollection[64];
         for (int fromPos = 0; fromPos < NR_SQUARES; fromPos++) {
             moves[fromPos] = new MovesCollection();
@@ -121,7 +120,6 @@ public class ChessPiece {
         }
 
         int val = pieceBaseValue(pieceType());
-
         return val;
     }
 
@@ -142,6 +140,13 @@ public class ChessPiece {
         return move.isALegalMoveNow();
     }
 
+    public boolean isALegalMoveForMeToPosAfter(int toPos, VBoard fb) {
+        Move move = getMove( fb.getPiecePos(this), toPos);
+        if (move == null)
+            return false;
+        return move.isALegalMoveAfter(fb);
+    }
+
     public Move getMove(int from, int to) {
         if (moves == null || moves[from] == null || moves[from].isEmpty())
             return null;
@@ -152,13 +157,13 @@ public class ChessPiece {
         return getMove(pos(), toPos);
     }
 
-    public Move getDirectMoveAfter(int toPos, VBoardInterface fb) {
+    public Move getDirectMoveAfter(int toPos, VBoard fb) {
         int fromPos = fb.getPiecePos(this);
         return getMove(fromPos, toPos);
     }
 
 
-    public Evaluation getMoveToEvalAfter(int toPos, VBoardInterface fb) {
+    public Evaluation getMoveToEvalAfter(int toPos, VBoard fb) {
         int fromPos = fb.getPiecePos(this);
         Move evaluatedMove = getEvaluatedMoveToAfter(getMove(fromPos, toPos), fb);
         if (evaluatedMove == null)
@@ -171,7 +176,7 @@ public class ChessPiece {
      * @param fb future board as VBoardInterface
      * @return a new evaluated Move
      */
-    public Move getEvaluatedMoveToAfter(Move move2Bevaluated, VBoardInterface fb) {
+    public Move getEvaluatedMoveToAfter(Move move2Bevaluated, VBoard fb) {
         if (move2Bevaluated == null || !move2Bevaluated.isALegalMoveAfter(fb))
             return null;
         VBoard fbAfter = VBoard.createNext(fb, move2Bevaluated);
@@ -237,7 +242,7 @@ public class ChessPiece {
 
         // c) enable moves that now can slide over this square here
         //Todo: should not add all moves, but only all best moves per piece
-        fromSq.getSingleMovesSlidingOverHere()
+        fromSq.getSingleMovesSlidingOverHereAfter(fbAfter)
                 .filter(move -> move.isALegalMoveAfter(fbAfter))
                 .forEach(move -> {
                     Evaluation enabledEval = getMoveEvalInclFollowUpAfter(move,fbAfter);
@@ -256,7 +261,7 @@ public class ChessPiece {
         // d) delay sliding moves that are now blocked at the toPos
         //Todo: also process blocked 1-hop moves incl. formerly capturing pawns and straight moving pawns,
         // as well as straight moving opponent pawns + in any case: do not use blocks if there was a blocking piece already
-        toSq.getSingleMovesSlidingOverHere()
+        toSq.getSingleMovesSlidingOverHereAfter(fbAfter)
                 .filter(move -> move.isALegalMoveAfter(fbAfter))
                 .forEach(move -> {
                     Evaluation e = move.getSimpleMoveEvalAfter(fbAfter);
@@ -269,6 +274,7 @@ public class ChessPiece {
                         System.out.println("blocking " + move + " leads to " + eval + ".");
                 });
 
+        // todo: e) and f) should be restricted to what piece can _newly_ capture or cover, but not already did
         if (oppFUpEval == null || oppFUpEval.isGoodForColor(color())) {
             // e) see what this piece can capture from here
             Move bestDirectFollowUpMove = getBestEvaluatedDirectFollowUpMoveAfter(fbAfter);
@@ -317,7 +323,7 @@ public class ChessPiece {
      * @return
      */
     private Evaluation getMoveEvalInclFollowUpAfter(Move move, VBoard fb) {
-        VBoardInterface fbNext = VBoard.createNext(fb, move);
+        VBoard fbNext = VBoard.createNext(fb, move);
         Evaluation atToSqEval = move.getSimpleMoveEvalAfter(fb);
         Evaluation oppFUpEval = getFollowUpEvalAtSqAfter(move.toSq(), fbNext);
         if (oppFUpEval != null && oppFUpEval.isGoodForColor(opponentColor(move.piece().color()))) {
@@ -333,7 +339,7 @@ public class ChessPiece {
      * @param fbNext
      * @return benefit or price to pay to capture, null if it is not possible to capture, or there is no piece to capture.
      */
-    private Evaluation getFollowUpEvalAtSqAfter(Square toSq, VBoardInterface fbNext) {
+    private Evaluation getFollowUpEvalAtSqAfter(Square toSq, VBoard fbNext) {
         ChessPiece cheapestToPosAttacker = toSq.cheapestAttackersOfColorToHereAfter(opponentColor(color()), fbNext);
         if (cheapestToPosAttacker == null)
             return null;
@@ -367,25 +373,24 @@ public class ChessPiece {
 
     private Move getBestEvaluatedDirectFollowUpMoveAfter(VBoard fb) {
         Move bestFollowUpMove = null;
-        for (Iterator<Move> it = legalMovesAfter(fb).iterator(); it.hasNext(); ) {
-            Move move = it.next();
-            Evaluation eval = getMoveEvalInclFollowUpAfter(move, fb);
+        for (Move move : legalMovesAfter(fb) ) {
+
+             Evaluation eval = getMoveEvalInclFollowUpAfter(move, fb);
             if (eval != null) {
                 if (bestFollowUpMove == null || eval.isBetterForColorThan(color(), move.getEval())) {
                     bestFollowUpMove = new Move(move).setEval(eval);
                 }
             }
-        };
+        }
         return bestFollowUpMove;
     }
 
-    private Move getBestDefenceEvalAfter(VBoardInterface  fb, VBoardInterface fbAfter) {
+    private Move getBestDefenceEvalAfter(VBoard fb, VBoard fbAfter) {
         Evaluation bestDefenceEval = null;
         Move bestDefenceMove = null;
-        for (Iterator<Move> it = coveringMovesAfter(fbAfter).iterator(); it.hasNext(); ) {
-            Move move = it.next();
+        for (Move move : coveringMovesAfter(fbAfter) ) {
             if (move.to() == fb.getPiecePos(this))
-                continue;; // I was not covering myself before the move and I will not do so after the move...
+                continue; // I was not covering myself before the move and I will not do so after the move...
             Evaluation evalBefore = getFollowUpEvalAtSqAfter(move.toSq(), fb);
             if (evalBefore == null)
                 continue;  // no capturing possible, even without me...
@@ -423,11 +428,7 @@ public class ChessPiece {
         return false;
     }
 
-    public Stream<Move> legalMovesStreamAfter(VBoardInterface fb) {
-        return legalMovesAfter(fb).stream();
-    }
-
-    public List<Move> legalMovesAfter(VBoardInterface fb) {
+    public List<Move> legalMovesAfter(VBoard fb) {
         assert(moves != null);
         assert(moves[fb.getPiecePos(this)] != null);
         int fromPos = fb.getPiecePos(this);
@@ -442,12 +443,16 @@ public class ChessPiece {
         return legalMoves;
     }
 
+    public Stream<Move> legalMovesStreamAfter(VBoard fb) {
+        return legalMovesAfter(fb).stream();
+    }
+
     /**
      * almost the same as legalMovesAfter(), but also returns the "moves" that cover a (own) piece
      * @param fb
      * @return
      */
-    public Stream<Move> coveringMovesAfter(VBoardInterface fb) {
+    public List<Move> coveringMovesAfter(VBoard fb) {
         assert(moves != null);
         assert(moves[fb.getPiecePos(this)] != null);
         int fromPos = fb.getPiecePos(this);
@@ -456,10 +461,14 @@ public class ChessPiece {
         //Todo: cache and reset after a real move
         //loop over all moves and check if the moves are legal or covering an own piece
         for (Move m : moves[fromPos]) {
-            if (m.isDefendingAfter(fb))
+            if (m.isCoveringAfter(fb))
                 legalMoves.add(m);
         }
-        return legalMoves.stream();
+        return legalMoves;
+    }
+
+    public Stream<Move> coveringMovesStreamAfter(VBoard fb) {
+        return coveringMovesAfter(fb).stream();
     }
 
     private void clearMovesAndAllChances() {
@@ -467,13 +476,13 @@ public class ChessPiece {
         ;
     }
 
-    public boolean isADirectMoveAfter(Move move, VBoardInterface fb) {
+    public boolean isADirectMoveAfter(Move move, VBoard fb) {
         if ( fb.hasPieceOfColorAt(color(), move.toSq().pos())  )  // move.toSq().hasPieceOfColorAfter(color(), fb))
             return false; // target already occupied
-        return isDefendingTargetAfter(move, fb);
+        return isCoveringTargetAfter(move, fb);
     }
 
-    public boolean isDefendingTargetAfter(Move move, VBoardInterface fb) {
+    public boolean isCoveringTargetAfter(Move move, VBoard fb) {
         // loop over all intermediate Sqs, if they are free
         for (Square iSq : move.intermedSqs()) {
             if (!iSq.isEmptyAfter(fb))

@@ -27,7 +27,7 @@ public class ChessPiecePawn extends ChessPiece {
     }
 
     @Override
-    public Move getDirectMoveAfter(int toPos, VBoardInterface fb) {
+    public Move getDirectMoveAfter(int toPos, VBoard fb) {
         int fromPos = fb.getPiecePos(this);
         if (exceptionNotPossibleForPawnAfter(fromPos, toPos, fb))
             return null;
@@ -35,14 +35,14 @@ public class ChessPiecePawn extends ChessPiece {
     }
 
     @Override
-    public boolean isADirectMoveAfter(Move move, VBoardInterface fb) {
+    public boolean isADirectMoveAfter(Move move, VBoard fb) {
         if (exceptionNotPossibleForPawnAfter(move.from(), move.to(), fb))
             return false;
         return super.isADirectMoveAfter(move, fb);
     }
 
 
-    private boolean exceptionNotPossibleForPawnAfter(int fromPos, int toPos, VBoardInterface fb) {
+    private boolean exceptionNotPossibleForPawnAfter(int fromPos, int toPos, VBoard fb) {
         if (onSameFile(fromPos, toPos)) {
             // pawn can only go there if square is empty
             if (!fb.isSquareEmpty(toPos))

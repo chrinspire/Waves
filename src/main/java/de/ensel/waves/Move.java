@@ -29,8 +29,9 @@ import static de.ensel.chessbasics.ChessBasics.*;
 public class Move implements Comparable<Move> {
     private ChessPiece myPiece;
     private Square fromSq;
-
+    private int fromPos;
     private Square toSq;
+    private int toPos;
     private int promotesTo;
     private boolean isCheckGiving = false;
 
@@ -43,7 +44,9 @@ public class Move implements Comparable<Move> {
     public Move(ChessPiece myPiece, Square fromSq, Square toSq, Square[] intermedSqs) {
         this.myPiece = myPiece;
         this.fromSq = fromSq;
+        this.fromPos = fromSq.pos();
         this.toSq = toSq;
+        this.toPos = toSq.pos();
         promotesTo = EMPTY;
         this.intermedSqs = intermedSqs;
     }
@@ -51,7 +54,9 @@ public class Move implements Comparable<Move> {
     public Move(ChessPiece myPiece, Square fromSq, Square toSq, int promotesToPceTypee, Square[] intermedSqs) {
         this.myPiece = myPiece;
         this.fromSq = fromSq;
+        this.fromPos = fromSq.pos();
         this.toSq = toSq;
+        this.toPos = toSq.pos();
         promotesTo = promotesToPceTypee;
         this.intermedSqs = intermedSqs;
     }
@@ -59,7 +64,9 @@ public class Move implements Comparable<Move> {
     public Move(Move origin) {
         this.myPiece = origin.myPiece;
         this.fromSq = origin.fromSq;
+        this.fromPos = origin.fromPos;
         this.toSq = origin.toSq;
+        this.toPos = origin.toPos;
         this.promotesTo = origin.promotesTo;
         this.isCheckGiving = origin.isCheckGiving;
         this.eval = origin.eval;
@@ -271,11 +278,11 @@ public class Move implements Comparable<Move> {
     //// getter
 
     public int from() {
-        return fromSq.pos();
+        return fromPos; // fromSq.pos();
     }
 
     public int to() {
-        return toSq.pos();
+        return toPos;
     }
 
     public boolean isChecking() {
@@ -322,7 +329,7 @@ public class Move implements Comparable<Move> {
         return isALegalMoveAfter(piece().board());
     }
 
-    public boolean isALegalMoveAfter(VBoardInterface fb) {
+    public boolean isALegalMoveAfter(VBoard fb) {
         int pos = fb.getPiecePos(piece());
         if ( pos == NOWHERE )  //was: fb.isCaptured(piece())
             return false;
@@ -331,13 +338,13 @@ public class Move implements Comparable<Move> {
                 && myPiece.isADirectMoveAfter(this, fb);
     }
 
-    public boolean isDefendingAfter(VBoardInterface fb) {
+    public boolean isCoveringAfter(VBoard fb) {
         int pos = fb.getPiecePos(piece());
         if ( pos == NOWHERE )  //was: fb.isCaptured(piece())
             return false;
         return pos == from()  // piece is still here
                 && !isBlockedByKingPin(fb)
-                && myPiece.isDefendingTargetAfter(this, fb);
+                && myPiece.isCoveringTargetAfter(this, fb);
     }
 
     private boolean isBlockedByKingPin(VBoardInterface bc) {
@@ -351,7 +358,7 @@ public class Move implements Comparable<Move> {
         return new Evaluation(-piece().board().getPieceAt(to()).getValue(), 0);
     }
 
-    public Evaluation getSimpleMoveEvalAfter(VBoardInterface bc) {
+    public Evaluation getSimpleMoveEvalAfter(VBoard bc) {
         assert (isALegalMoveAfter(bc));
         // consider context of already done moves.
        ChessPiece capturedPiece = bc.getPieceAt(to());

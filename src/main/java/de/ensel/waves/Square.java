@@ -35,15 +35,20 @@ public class Square {
     private int clashEvalResult = 0;
     boolean[] blocksCheckFor = new boolean[2];  // tells if a piece here can block a check here (for king with colorindex) by taking a checker of moving in the way
 
-    List<Move> depMovesOver  = new ArrayList<>(400); // todo: determine max reasonable capacity
-    List<Move> depMovesStart = new ArrayList<>(200); // todo: determine max reasonable capacity
-    List<Move> depMovesEnd   = new ArrayList<>(200); // todo: determine max reasonable capacity
+    List<Move>[] depMovesOver  = new List[2];
+    List<Move>[] depMovesStart = new List[2];
+    List<Move>[] depMovesEnd   = new List[2];
     //// Constructors
 
     Square(ChessBoard myChessBoard, int myPos) {
         this.board = myChessBoard;
         this.myPos = myPos;
         this.myPieceID = NO_PIECE_ID;
+        for (int c = 0; c < 2; c++) {
+            depMovesOver[c] = new ArrayList<>();
+            depMovesStart[c] = new ArrayList<>();
+            depMovesEnd[c] = new ArrayList<>();
+        }
     }
 
 
@@ -112,21 +117,21 @@ public class Square {
         return board.hasPieceOfColorAt(color, pos());
     }
 
-    public boolean hasPieceOfColorAfter(int color, VBoardInterface bc) {
+    public boolean hasPieceOfColorAfter(int color, VBoard bc) {
         return bc.hasPieceOfColorAt(color, pos());
     }
 
-    ChessPiece cheapestDefenderHereForPieceAfter(ChessPiece pce, VBoardInterface fbAfter) {
+    ChessPiece cheapestDefenderHereForPieceAfter(ChessPiece pce, VBoard fbAfter) {
         return getMovesToHere(pce.color())
                 .filter(move ->
                         move.piece() != pce
-                        && move.isDefendingAfter(fbAfter))
+                        && move.isCoveringAfter(fbAfter))
                 .map(Move::piece)
                 .min(Comparator.comparingInt(p -> abs(p.getValue())))
                 .orElse(null);
     }
 
-    ChessPiece cheapestAttackersOfColorToHereAfter(int color, VBoardInterface fbAfter) {
+    ChessPiece cheapestAttackersOfColorToHereAfter(int color, VBoard fbAfter) {
         return getMovesToHere(color)
                 .filter(move -> move.isALegalMoveAfter(fbAfter))
                 .map(Move::piece)
@@ -212,39 +217,43 @@ public class Square {
     }
 
     public void setupAddDependentMoveSlidingOver(Move m) {
-        depMovesOver.add(m);
+        depMovesOver[m.piece().color()].add(m);
     }
 
     public void setupAddDependentMoveStart(Move m) {
-        depMovesStart.add(m);
+        depMovesStart[m.piece().color()].add(m);
     }
 
     public void setupAddDependentMoveEnd(Move m) {
-        depMovesEnd.add(m);
+        depMovesEnd[m.piece().color()].add(m);
     }
 
     /**
      *
      * @return Stream of all Moves of all pieces that end here.
      */
-    public Stream<Move> getMovesToHere() {
-        return depMovesEnd.stream();
-    }
-
     public Stream<Move> getMovesToHere(int color) {
-        return depMovesEnd.stream().filter(move -> move.piece().color() == color);
+        return depMovesEnd[color].stream();
     }
 
     /**
      * like getMovesToHere(), but filtered to those move coming directly from a piece origin.
      * @return Stream of all Moves of all pieces that can come here directly.
      */
-    public Stream<Move> getSingleMovesToHere() {
-        return depMovesEnd.stream().filter(move -> move.from() == move.piece().pos());
+    public Stream<Move> getSingleMovesToHere(int color, VBoard fb) {
+        // Todo: can be just one move, no? -> make it return Move
+        return depMovesEnd[color].stream()
+                .filter(move -> move.from() == fb.getPiecePos(move.piece()));
     }
 
-    public Stream<Move> getSingleMovesSlidingOverHere() {
-        return depMovesOver.stream().filter(move -> move.from() == move.piece().pos());
+    public Stream<Move> getSingleMovesSlidingOverHereAfter(int color, VBoard fb) {
+        return depMovesOver[color].stream()
+                .filter(move -> move.from() == fb.getPiecePos(move.piece()));
+    }
+
+    public Stream<Move> getSingleMovesSlidingOverHereAfter(VBoard fb) {
+        return  Stream.concat( getSingleMovesSlidingOverHereAfter(CIWHITE, fb),
+                               getSingleMovesSlidingOverHereAfter(CIBLACK, fb) );
     }
 
 //    /**

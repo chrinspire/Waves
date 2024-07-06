@@ -30,7 +30,7 @@ import static de.ensel.waves.VBoardInterface.GameState.*;
 import static java.lang.Math.*;
 import static java.text.MessageFormat.format;
 
-public class ChessBoard implements VBoardInterface {
+public class ChessBoard extends VBoard {
     public static final ResourceBundle chessBoardRes = ResourceBundle.getBundle("de.ensel.chessboardres");
 
     private ChessEngineParams engParams = new ChessEngineParams();
@@ -98,9 +98,9 @@ public class ChessBoard implements VBoardInterface {
      * Constructor
      * for a fresh ChessBoard in Starting-Position
      */
-    public ChessBoard() {
-        initChessBoard(new StringBuffer(chessBoardRes.getString("chessboard.initialName")), FENPOS_STARTPOS);
-    }
+//    public ChessBoard() {
+//        initChessBoard(new StringBuffer(chessBoardRes.getString("chessboard.initialName")), FENPOS_STARTPOS);
+//    }
 
     public ChessBoard(String fenBoard) {
         initChessBoard(new StringBuffer(chessBoardRes.getString("chessboard.initialName")), fenBoard);
@@ -756,7 +756,7 @@ public class ChessBoard implements VBoardInterface {
     }
 
     public int countCalculatedBoards;
-    Stream<Move> getBestMovesForColAfter(final int color, ChessEngineParams engParams, VBoardInterface upToNowBoard, int alpha, int beta) {
+    Stream<Move> getBestMovesForColAfter(final int color, ChessEngineParams engParams, VBoard upToNowBoard, int alpha, int beta) {
         final int maxBestMoves = engParams.searchMaxNrOfBestMovesPerPly();  // only the top moves are sorted
         List<Move> bestMoveCandidates = new ArrayList<>(maxBestMoves+(maxBestMoves>>1));
         List<Move> bestMoves = new ArrayList<>(maxBestMoves);
