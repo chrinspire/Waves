@@ -767,8 +767,7 @@ public class ChessBoard extends VBoard {
         int[] betaS = new int[]{beta};
         boolean doABcheckInPresearch = upToNowBoard.futureLevel() >= engParams.searchMaxDepth()-1;
         final int[] countOppMoves = {0};
-        upToNowBoard.getPieces()
-            .filter(p -> p.color() == color)
+        upToNowBoard.getPieces(color)
             .forEach( p -> {
                 p.legalMovesAfter(upToNowBoard).forEach( move -> {
                     if (!alphabetabreak[0]) { // like a for-break
@@ -1464,6 +1463,12 @@ public class ChessBoard extends VBoard {
     @Override
     public Stream<ChessPiece> getPieces() {
         return Arrays.stream(piecesOnBoard).filter(Objects::nonNull);
+    }
+
+    @Override
+    public Stream<ChessPiece> getPieces(int color) {
+        return getPieces()
+                .filter(p -> p.color() == color);
     }
 
     public int getNrOfPieces(int color) {

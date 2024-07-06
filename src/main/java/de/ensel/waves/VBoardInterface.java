@@ -47,6 +47,8 @@ public interface VBoardInterface {
     boolean     isSquareEmpty(int pos);
     boolean     hasPieceOfColorAt(int color, int pos);
     Stream<ChessPiece> getPieces();
+    Stream<ChessPiece> getPieces(int color);
+
     ChessPiece  getPieceAt(int pos);
     int         getPiecePos(ChessPiece pce);
 

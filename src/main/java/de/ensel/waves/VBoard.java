@@ -106,6 +106,12 @@ public class VBoard implements VBoardInterface {
     }
 
     @Override
+    public Stream<ChessPiece> getPieces(int color) {
+        return baseBoard.getPieces(color)
+                .filter( p -> getPiecePos(p) != NOWHERE );
+    }
+
+    @Override
     public ChessPiece getPieceAt(int pos) {
         int foundAt = lastMoveNrToPos(pos);
         // found or not: check if it (the found one or the original piece) did not move away since then...
@@ -161,7 +167,7 @@ public class VBoard implements VBoardInterface {
 
     @Override
     public boolean hasLegalMoves(int color) {
-        for (Iterator<ChessPiece> it = getPieces().filter(p -> p.color() == color).iterator(); it.hasNext(); ) {
+        for (Iterator<ChessPiece> it = getPieces(color).iterator(); it.hasNext(); ) {
             if ( it.next().legalMovesStreamAfter(this).findAny().orElse(null) != null )
                 return true;
         }
