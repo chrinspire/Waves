@@ -742,7 +742,7 @@ public class ChessBoard implements VBoardInterface {
         // Compare all moves returned by all my pieces and find the best.
         //Stream<Move> bestOpponentMoves = getBestMovesForColAfter( opponentColor(getTurnCol()), NOCHANGE );
         countCalculatedBoards = 0;
-        setEngParams(new ChessEngineParams(engineP1));
+        //setEngParams(new ChessEngineParams(engineP1));
         Stream<Move> bestMoves    = getBestMovesForColAfter( getTurnCol(), engParams, this, Integer.MIN_VALUE, Integer.MAX_VALUE);
         bestMove = bestMoves.findFirst().orElse(null);
         //System.err.println("  --> " + bestMove );

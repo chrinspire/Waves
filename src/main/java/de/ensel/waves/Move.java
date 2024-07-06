@@ -75,8 +75,9 @@ public class Move implements Comparable<Move> {
      * @param evalValue
      * @param futureLevel the future level from 0..max
      */
-    void addEval(int evalValue, int futureLevel) {
+    Move addEval(int evalValue, int futureLevel) {
         eval.addEval(evalValue,futureLevel);
+        return this;
     }
 
 

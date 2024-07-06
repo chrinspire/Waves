@@ -37,7 +37,7 @@ import static de.ensel.waves.ChessEngineParams.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ChessBoardTest {
-    public static ChessEngineParams testEngParams = new ChessEngineParams(LEVEL_TEST_LONG);
+    public static ChessEngineParams testEngParams = new ChessEngineParams(LEVEL_TEST_MID);
 
     // temporary/debug tests: choose the one best move
     @Disabled
@@ -214,7 +214,7 @@ public class ChessBoardTest {
         ,"5k2/8/3r2q1/8/1R6/P7/1P2r1R1/K7 w - - 0 1, g2e2"      // take q and lose R? better take r (+#)
     })
     void ChessBoardGetBestMove_Basics_Test(String fen, String expectedBestMove) {
-        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", false);
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
     }
 
     // choose the one best move in simple scenarios, but with many pieces
