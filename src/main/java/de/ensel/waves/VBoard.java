@@ -18,24 +18,25 @@
 
 package de.ensel.waves;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import de.ensel.waves.clashes.CoverageBitMap;
+
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.waves.VBoardInterface.GameState.*;
+import static de.ensel.waves.clashes.Clashes.calcBiasedClash;
 
 public class VBoard implements VBoardInterface {
     public static int usageCounter = 0;
-    private final List<Move> moves = new ArrayList<>();
     ChessBoard baseBoard;
     // VBoardInterface preBoard;
 
     // superseding data
     final private int[] piecePos; // = new int[MAX_PIECES];
+    private Move[] moves;
+    private int nrOfMoves = 0;
 
     // for debugging only
     private ChessPiece capturedPiece;
@@ -50,14 +51,20 @@ public class VBoard implements VBoardInterface {
             this.baseBoard = (ChessBoard)preBoard;
             piecePos = new int[MAX_PIECES];
             Arrays.fill(piecePos, POS_UNSET);
+            moves = new Move[ChessEngineParams.MAX_SEARCH_DEPTH+3];  // + lookahead of primitive eval method
+            this.piecePos = new int[MAX_PIECES];
+            Arrays.fill(this.piecePos, POS_UNSET);
             return;
         }
+        // else VBoard
         VBoard preVB = (VBoard)preBoard;
         this.baseBoard = preVB.baseBoard;
-        this.moves.addAll(preVB.moves);
+        this.nrOfMoves = preVB.nrOfMoves;
+        this.moves = preVB.moves;
         this.piecePos = Arrays.copyOf(preVB.piecePos, preVB.piecePos.length);
         this.capturedPiece = null;
     }
+
 
     // factory, based on a VBoardInterface (VBoard or ChesBoard) + one move
     public static VBoard createNext(VBoardInterface preBoard, Move plusOneMove) {
@@ -71,11 +78,15 @@ public class VBoard implements VBoardInterface {
         // if this new move captures a piece, let's remember that
         ChessPiece movingPiece = move.piece();
         int toPos = move.to();
-        moves.add(move);   // needs to be called first, so depth will be correct from here on
+        moves[nrOfMoves++] = move;   // needs to be called first, so depth will be correct from here on
         if (preBoard.hasPieceOfColorAt(opponentColor(move.piece().color()), toPos)) {
+            // it's a capture
             capturedPiece = preBoard.getPieceAt(toPos);
             piecePos[capturedPiece.id()] = NOWHERE;
             captureEvalSoFar -= capturedPiece.getValue();
+        }
+        else {
+            capturedPiece = null;
         }
         piecePos[movingPiece.id()] = toPos;
         return this;
@@ -98,12 +109,12 @@ public class VBoard implements VBoardInterface {
     public ChessPiece getPieceAt(int pos) {
         int foundAt = lastMoveNrToPos(pos);
         // found or not: check if it (the found one or the original piece) did not move away since then...
-        for (int i = foundAt+1; i < moves.size(); i++) {
-            if (moves.get(i).from() == pos)
+        for (int i = foundAt+1; i < nrOfMoves; i++) {
+            if (moves[i].from() == pos)
                 return null;
         }
         if (foundAt >= 0)
-            return moves.get(foundAt).piece();
+            return moves[foundAt].piece();
         // orig piece is still there
         return baseBoard.getPieceAt(pos);
     }
@@ -145,13 +156,13 @@ public class VBoard implements VBoardInterface {
 
     @Override
     public int getTurnCol() {
-        return (moves.size() % 2 == 0) ? baseBoard.getTurnCol() : opponentColor(baseBoard.getTurnCol());
+        return opponentColor(moves[nrOfMoves-1].piece().color());
     }
 
     @Override
     public boolean hasLegalMoves(int color) {
         for (Iterator<ChessPiece> it = getPieces().filter(p -> p.color() == color).iterator(); it.hasNext(); ) {
-            if ( it.next().legalMovesAfter(this).findAny().orElse(null) != null )
+            if ( it.next().legalMovesStreamAfter(this).findAny().orElse(null) != null )
                 return true;
         }
         return false;
@@ -179,23 +190,23 @@ public class VBoard implements VBoardInterface {
 
     @Override
     public int depth() {
-        return moves.size();
+        return nrOfMoves;
     }
 
     @Override
     public int futureLevel() {
         // TODO/idea: do not count forcing moves
-        return moves.size();
+        return nrOfMoves;
     }
 
     @Override
     public boolean isSquareEmpty(final int pos){
         // check moves backwards, if this pos has last been moved to or may be away from
 
-        for (int i = moves.size() - 1; i >= 0; i--) {
-            if (moves.get(i).from() == pos)
+        for (int i = nrOfMoves - 1; i >= 0; i--) {
+            if (moves[i].from() == pos)
                 return true;
-            if (moves.get(i).to() == pos)
+            if (moves[i].to() == pos)
                 return false;
         }
         // nothing changed here
@@ -205,7 +216,8 @@ public class VBoard implements VBoardInterface {
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
-        result.append(moves.stream()
+        result.append(Arrays.stream(moves)
+                        .filter(Objects::nonNull)
                 .map(Move::toString)
                 .collect(Collectors.joining(" ")));
         if (capturedPiece != null)
@@ -226,7 +238,7 @@ public class VBoard implements VBoardInterface {
 //    }
 
     @Override
-    public int getPiecePos(ChessPiece pce) {
+    public int getPiecePos(final ChessPiece pce) {
         if (piecePos[pce.id()] == POS_UNSET) { // not yet set
             piecePos[pce.id()] = calcPiecePos(pce);
         }
@@ -235,9 +247,9 @@ public class VBoard implements VBoardInterface {
 
     private int calcPiecePos(ChessPiece pce) {
         // check moves backwards, if this piece has already moved
-        for (int i = moves.size() - 1; i >= 0; i--) {
-            if (moves.get(i).piece() == pce)
-                return moves.get(i).to();
+        for (int i = nrOfMoves - 1; i >= 0; i--) {
+            if (moves[i].piece() == pce)
+                return moves[i].to();
         }
         // it did not move
         return pce.pos();
@@ -251,11 +263,11 @@ public class VBoard implements VBoardInterface {
      * @param pos position where to look
      * @return index in moves[] or -1 if not found
      */
-    private int lastMoveNrToPos(int pos) {
+    private int lastMoveNrToPos(final int pos) {
         int foundAt = -1;
         // look at moves in backwards order
-        for (int i = moves.size() - 1; i >= 0; i--) {
-            if (moves.get(i).to() == pos) {
+        for (int i = nrOfMoves - 1; i >= 0; i--) {
+            if (moves[i].to() == pos) {
                 foundAt = i;
                 break;
             }
