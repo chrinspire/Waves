@@ -28,7 +28,7 @@ public record ChessEngineParams(String paramSetName, int searchMaxDepth, int sea
     public static final int LEVEL_TEST_LONG = 7;
 
     public static final int MAX_SEARCH_DEPTH = 12;
-    public static final int LEVEL_DEFAULT = LEVEL_TEST_QUICK;
+    public static final int LEVEL_DEFAULT = LEVEL_TEST_MID;
 
     public static final ChessEngineParams[] levels = new ChessEngineParams[]{
             new ChessEngineParams("zero", 0, 100),

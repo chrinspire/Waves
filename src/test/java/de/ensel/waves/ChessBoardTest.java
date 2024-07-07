@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class ChessBoardTest {
     //public static ChessEngineParams testEngParams = new ChessEngineParams(LEVEL_TEST_MID);
-    static final int DEFAULT_TEST_ENGINE_LEVEL = LEVEL_TEST_MID;
+    static final int DEFAULT_TEST_ENGINE_LEVEL = LEVEL_TEST_MID; // LEVEL_TEST_QUICK-1; // LEVEL_TEST_MID;
 
     // temporary/debug tests: choose the one best move
     @Disabled
@@ -224,10 +224,11 @@ public class ChessBoardTest {
     @CsvSource({
         "r1bqkbnr/1ppppppp/p1n5/3N4/1P1PPB2/P7/2P2PPP/R2QKBNR b KQk - 1 7, d7d6"      // need to block an attacked piece (where is a fork at the same time)
         ,"r1b1kbnr/pppp1ppp/4p3/2PP4/1P1n3q/P4N2/4PPPP/RNBQKB1R b KQkq - 2 7, d4f3"
+        ,"r1bqkbnr/pppppppp/n7/1P6/3P4/P7/2P1PPPP/RNBQKBNR b KQk - 0 4, a6b8"           // save n
         ,"1rbqkbnr/p1pppppp/p7/8/3P4/4P3/PPPB1PPP/RN1QK1NR b KQk - 1 4, b8b2"         // take free pawn
     })
     void ChessBoardGetBestMove_moreComplex_Test(String fen, String expectedBestMove) {
-        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", false);
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
     }
 
 

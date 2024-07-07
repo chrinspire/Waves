@@ -223,16 +223,15 @@ public class ChessPiece {
             //                    eval.addEval(move.getSimpleMoveEvalAfter(fbAfter));
             //                });
         Square fromSq = board.getSquare(move2Bevaluated.from());
-        // todo: exclude those attackers that could have taken me anyway (resp, counter-count the capture-eval, it might still be better there)
         ChessPiece cheapestFromPosAttacker = fromSq.cheapestAttackersOfColorToHereAfter(opponentColor(color()), fb);
         if (cheapestFromPosAttacker != null) {
             Move disabledCapture = cheapestFromPosAttacker.getDirectMoveAfter(move2Bevaluated.from(), fb);
             if (disabledCapture != null) {
                 Evaluation disabledCaptureEval = cheapestFromPosAttacker.getMoveEvalInclFollowUpAfter(move2Bevaluated, fb);
                 if (!disabledCaptureEval.isAboutZero()) {
-                    disabledCaptureEval
+                    //disabledCaptureEval
                             // .timeWarp(+1)  // TODO!: +1 is not supported correctly by the (older) eval-comparison
-                            .invert();  // capturing if do not move is an opponents move coming (potentially) after my moves
+                    //        .invert();  // capturing if do not move is an opponents move coming (potentially) after my moves
                     addEvalWithReason("avoiding_capture_by", disabledCapture, eval, disabledCaptureEval );
                 }
             }
@@ -345,7 +344,7 @@ public class ChessPiece {
             //Todo: calc the effectiveness of the old covering and consequences of the block
             int rawEval0 = evalForColor(EVAL_TENTH, toSqPce.color());
             Evaluation delta = new Evaluation(doAdd ? rawEval0 : -rawEval0, 0 );  // any color covers immediately now
-            addEvalWithReason(reasonPrefix + "_cover:", move, eval, delta);
+            addEvalWithReason(reasonPrefix + "_cover", move, eval, delta);
         }
         else {
             // a previously possible capture at move.toSq is disabled
@@ -358,14 +357,14 @@ public class ChessPiece {
                 delta.timeWarp(+2);
             if (!doAdd)
                 delta.invert();
-            addEvalWithReason(reasonPrefix + "_capture:", move, eval, delta);
+            addEvalWithReason(reasonPrefix + "_capture", move, eval, delta);
         }
     }
 
     private static void addEvalWithReason(String reason, Move move, Evaluation eval, Evaluation delta) {
         String explanation = reason + "_" + (move == null ? "" : move) + "+" + delta;
         if (!delta.isAboutZero()) {
-            if (SHOW_REASONS && !delta.isAboutZero())
+            if (SHOW_REASONS)
                 eval.addReason(explanation);
             if (DEBUGMSG_MOVEEVAL)
                 System.out.println("  " + explanation);
