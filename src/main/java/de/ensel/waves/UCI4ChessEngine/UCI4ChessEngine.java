@@ -73,16 +73,20 @@ public class UCI4ChessEngine {
     static String name = "Waves " + ChessBoard.chessBoardRes.getString("version");
 
 
+    public UCI4ChessEngine() {
+        super();
+    }
+
     public static void main(String[] args) throws Exception {
         System.out.println("Welcome to " + name + " by Christian Ensel");  // + uci4ce.engine.getBoard());
 
         Integer param1 = null;
-        if (args.length == 2) {
-            param1 = Integer.parseInt(args[1]);
+        if (args.length == 1) {
+            param1 = Integer.parseInt(args[0]);
             System.out.println("Setting engine param1 to: " + param1);
         }
-        else if (args.length > 2) {
-            System.out.println("Usage: " + args[0] + " [engineParam1]");
+        else if (args.length > 1) {
+            System.out.println("Usage: waves [engineParam1]");
             System.out.println("i.e. with no or exactly one parameter.");
             exit(3);
         }
