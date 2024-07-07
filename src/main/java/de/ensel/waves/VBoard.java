@@ -236,9 +236,9 @@ public class VBoard implements VBoardInterface {
             }
             move.getEval().setReason((this instanceof ChessBoard ? "" : this)
                     + " " + move + "!" + nextBoard.getGameStateDescription(nextBoard.gameState()) + "!");
-            if (ChessBoard.DEBUGMSG_MOVESELECTION /* && upToNowBoard.futureLevel() == 0 */)
-                ChessBoard.debugPrintln(ChessBoard.DEBUGMSG_MOVESELECTION, debugOutputprefix
-                        + "Reevaluated " /*+ move + " to " + move.getEval()
+            if (ChessBoard.DEBUGMSG_MOVESELECTION2 /* && upToNowBoard.futureLevel() == 0 */)
+                ChessBoard.debugPrint(ChessBoard.DEBUGMSG_MOVESELECTION, debugOutputprefix
+                        + "EOG:" /*+ move + " to " + move.getEval()
                         + " reason: " */ + move.getEval().getReason());
             return state != DRAW;
         }
@@ -262,12 +262,14 @@ public class VBoard implements VBoardInterface {
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
-        result.append(Arrays.stream(moves)
-                        .filter(Objects::nonNull)
-                .map(Move::toString)
-                .collect(Collectors.joining(" ")));
+        for (int i = 0; i < nrOfMoves; i++) {
+            if (i>0)
+                result.append(' ');
+            result.append(moves[i].fromSq());
+            result.append(moves[i].toSq());
+        }
         if (capturedPiece != null)
-            result.append("(x"+fenCharFromPceType(capturedPiece.pieceType())+")" );
+            result.append("x"+fenCharFromPceType(capturedPiece.pieceType()) );
         return result.toString();
     }
 

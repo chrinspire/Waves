@@ -274,9 +274,10 @@ class ChessPieceTest {
         // 5  b.░░░   ░░░   ░░░   ░░░
         // 4 ░░░^b ░░░   ░░░   ░░░      p2: b or B in opposite color of p1
         //... A  B  C  D  E  F  G  H
-        VBoard fb2 = VBoard.createNext(board, p2.getDirectMoveAfter(p2ToPos, fb));
+        VBoard fb2 = VBoard.createNext(board, p2.getDirectMoveAfter(p2ToPos, board));
         VBoard fb3 = VBoard.createNext(fb2, p1.getDirectMoveAfter(p1ToPos, fb2));
-        assertEval4MoveToAfter(p2, p1Pos, -p1.getValue(), fb3);
+        // target value a bit "fragile": captured piece value + the fact it was covering e7
+        assertEval4MoveToAfter(p2, p1Pos, -p1.getValue()-evalForColor(EVAL_TENTH,p1.color()), fb3);
     }
 
     @ParameterizedTest

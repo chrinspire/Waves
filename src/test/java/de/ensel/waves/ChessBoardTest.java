@@ -121,7 +121,7 @@ public class ChessBoardTest {
         board.completePreparation();
 
         // act
-        Stream<Move> bestMoveForCol = board.getBestMovesForColAfter(CIWHITE, engParams, board, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        Stream<Move> bestMoveForCol = board.getBestMovesForColAfter(CIWHITE, engParams);
 
         // assert
         StringBuilder result = new StringBuilder();
@@ -213,10 +213,10 @@ public class ChessBoardTest {
         ,"8/8/6B1/8/8/8/2r5/8 w - - 0 1, g6c2"          // B takes
         ,"8/8/2B3B1/8/8/8/2r5/8 b - - 0 1, c2c6"        // r flees and takes
         ,"8/5k2/2R3r1/3K4/8/8/6R1/8 b - - 0 1, g6g2"    // r needs to take the right (uncovered) R
-        ,"5k2/8/3r2q1/8/1R6/P7/1P2r1R1/K7 w - - 0 1, g2e2"      // take q and lose R? better take r (+#)
+        ,"5k2/8/3r2q1/8/1R6/P7/1P2r1R1/KN6 w - - 0 1, g2e2"      // take q and lose R? better take r (+#)
     })
     void ChessBoardGetBestMove_Basics_Test(String fen, String expectedBestMove) {
-        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", false);
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
     }
 
     // choose the one best move in simple scenarios, but with many pieces

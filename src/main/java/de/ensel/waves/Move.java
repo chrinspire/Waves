@@ -73,6 +73,10 @@ public class Move implements Comparable<Move> {
         this.intermedSqs = origin.intermedSqs;
     }
 
+    boolean isStraightMovingPawn() {
+        return piece() instanceof ChessPiecePawn && onSameFile(to(), from());
+    }
+
 
     //// handling evaluations
 

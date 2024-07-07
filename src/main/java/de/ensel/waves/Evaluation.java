@@ -21,7 +21,6 @@
 package de.ensel.waves;
 
 import java.util.Arrays;
-import java.util.Objects;
 
 import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.waves.ChessBoard.*;
@@ -32,7 +31,7 @@ import static java.lang.Math.abs;
  * perspective for [now, in one move, in 2 moves,...] called future levels.
  */
 public class Evaluation {
-    public static final int MAX_EVALDEPTH = 4;
+    public static final int MAX_EVALDEPTH = 5;
     private int[] rawEval;
     private String reason = null;
 
@@ -60,6 +59,8 @@ public class Evaluation {
     }
 
     boolean isBetterForColorThan(int color, Evaluation oEval) {
+        if (oEval == null)
+            return true;  // anything is better than no move :-)
         int i = 0;
         //if (DEBUGMSG_MOVESELECTION)
         //    debugPrint(DEBUGMSG_MOVESELECTION, "  comparing move eval " + this + " at "+i + " with " + oEval +": ");
@@ -156,6 +157,12 @@ public class Evaluation {
             for (int i = 0; i < MAX_EVALDEPTH; i++)
                 this.rawEval[i] -= addEval.rawEval[i];
         }
+        return this;
+    }
+
+    public Evaluation invert() {
+        for (int i = 0; i < MAX_EVALDEPTH; i++)
+            rawEval[i] = -rawEval[i];
         return this;
     }
 
