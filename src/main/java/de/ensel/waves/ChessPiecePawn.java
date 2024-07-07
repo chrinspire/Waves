@@ -34,7 +34,7 @@ public class ChessPiecePawn extends ChessPiece {
     }
 
     @Override
-    public boolean isADirectMoveAfter(Move move, VBoard fb) {
+    public boolean isADirectMoveAfter(Move move, VBoard fb)  {
         return movePossibleForPawnAfter(move.from(), move.to(), fb);
     }
 

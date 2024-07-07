@@ -86,7 +86,7 @@ public class ChessBoardController implements ChessEngine {
         boardInfo.put("BoardInfo of:", board.getBoardName().toString() + " {"+board.getBoardHash()+"}");
         //boardInfo.put("Nr. of moves & turn:", ""+chessBoard.getFullMoves()  );
         boardInfo.put("FEN:", board.getBoardFEN());
-        boardInfo.put("Game state:", board.getGameStateDescription(board.gameState())
+        boardInfo.put("Game state:", board.getGameStateDescription()  // board.gameState())
                 + ( board.isCheck(board.getTurnCol()) ? " "+board.nrOfChecks(board.getTurnCol())+" checks" : "")
                 + " --> " + ( board.isGameOver() ? "Game Over" : (" turn: " + colorName(board.getTurnCol()) + "" ) ) );
         boardInfo.put("Attack balance on opponent side, king area / defend own king:", "");

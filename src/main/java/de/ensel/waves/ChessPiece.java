@@ -331,11 +331,11 @@ public class ChessPiece {
     private Evaluation getMoveEvalInclFollowUpAfter(Move move, VBoard fb) {
         VBoard fbNext = VBoard.createNext(fb, move);
         Evaluation atToSqEval = move.getSimpleMoveEvalAfter(fb);
-        Evaluation oppFUpEval = getFollowUpEvalAtSqAfter(move.toSq(), fbNext);
-        if (oppFUpEval != null && oppFUpEval.isGoodForColor(opponentColor(move.piece().color()))) {
-            atToSqEval.addEval(oppFUpEval);
-        }
-        // atToSqEval.addEval(fbNext.getClashResultAt(move.to()), 0);
+//        Evaluation oppFUpEval = getFollowUpEvalAtSqAfter(move.toSq(), fbNext);
+//        if (oppFUpEval != null && oppFUpEval.isGoodForColor(opponentColor(move.piece().color()))) {
+//            atToSqEval.addEval(oppFUpEval);
+//        }
+        atToSqEval.addEval(fbNext.getClashResultAt(move.to()), 0);
         return atToSqEval;
     }
 

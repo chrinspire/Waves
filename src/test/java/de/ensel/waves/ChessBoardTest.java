@@ -114,11 +114,11 @@ public class ChessBoardTest {
         board.spawnPieceAt(opponentBishopPceType, p2Pos);
         int sameColorKnightPceType = (isPieceTypeWhite(pceType) ? KNIGHT : KNIGHT_BLACK);
         board.spawnPieceAt(sameColorKnightPceType, p3Pos);
+        board.completePreparation();
         ChessPiece p = board.getPieceAt(p1Pos);
         ChessPiece p2 = board.getPieceAt(p2Pos);
         ChessPiece p3 = board.getPieceAt(p3Pos);
         ChessEngineParams engParams = new ChessEngineParams(LEVEL_TEST_QUICK);
-        board.completePreparation();
 
         // act
         Stream<Move> bestMoveForCol = board.getBestMovesForColAfter(CIWHITE, engParams, board, Integer.MIN_VALUE, Integer.MAX_VALUE);

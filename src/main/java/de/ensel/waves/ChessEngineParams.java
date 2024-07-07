@@ -44,10 +44,10 @@ public record ChessEngineParams(String paramSetName, int searchMaxDepth, int sea
     };
 
     ChessEngineParams() {
-        this("default="+levels[LEVEL_DEFAULT].paramSetName(), levels[LEVEL_DEFAULT].searchMaxDepth(), levels[LEVEL_DEFAULT].searchMaxNrOfBestMovesPerPly());
+        this("default=easy", levels[LEVEL_DEFAULT].searchMaxDepth, levels[LEVEL_DEFAULT].searchMaxNrOfBestMovesPerPly);
     }
 
     ChessEngineParams(int level) {
-        this("level="+levels[level].paramSetName(), levels[level].searchMaxDepth(), levels[level].searchMaxNrOfBestMovesPerPly());
+        this("default="+level, levels[level].searchMaxDepth, levels[level].searchMaxNrOfBestMovesPerPly);
     }
 }

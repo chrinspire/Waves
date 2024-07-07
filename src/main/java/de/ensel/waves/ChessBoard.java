@@ -22,6 +22,7 @@ package de.ensel.waves;
 
 import java.util.*;
 import java.util.stream.Stream;
+import de.ensel.waves.clashes.*;
 
 import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.waves.Move.addMoveToSortedListOfCol;
@@ -77,7 +78,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
     /**
      * keep all Pieces on Board
      */
-    private ChessPiece[] piecesOnBoard;
+    private ChessPiece[] piecesOnBoard = new ChessPiece[MAX_PIECES];   //todo: split piecesOnBoard[] in both colors
     private int nextFreePceID;
     public static final int NO_PIECE_ID = -1;  //todo: why not using EMPTY from ChessBasics piece types?
 
@@ -373,7 +374,26 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
      */
     void completePreparation() {
         resetBestMove();
-        // not for now in Waves: continueDistanceCalcUpTo(MAX_INTERESTING_NROF_HOPS);
+        calcCBMsAndLegalMoves();
+        // will we still need this? // continueDistanceCalcUpTo(MAX_INTERESTING_NROF_HOPS);
+    }
+
+    private void calcCBMsAndLegalMoves() {
+        // get legal moves for all pieces
+        nrOfLegalMoves[CIWHITE] = 0;
+        nrOfLegalMoves[CIBLACK] = 0;
+        for (ChessPiece pce : piecesOnBoard) {
+            if (pce == null)
+                continue;
+            List<Move> coveringMoves = pce.coveringMovesAfter(this);  // todo: keep this list for the bestMoveCalculation
+            // for all legalMoves update CBMs
+            for (Move m : coveringMoves) {
+                cbms[pce.color()][m.to()] = CoverageBitMap.addPieceOfTypeToCoverage(pce.pieceType(), cbms[pce.color()][m.to()]);
+                if (!hasPieceOfColorAt(pce.color(), m.to()))
+                    nrOfLegalMoves[pce.color()]++;
+            }
+            //Todo: include "almost legal" moves (those legal, if there was no check on the board at the moment), but needs this differentiation all over the code...
+        }
     }
 
     private void resetBestMove() {
@@ -482,8 +502,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
             movesToDo = getMoves(fenString.substring(fenPosAndMoves.length()));
         } else {
             // it seems the fenString is a later position of my current position or a totally different one
-            // board changed, we need to recalc:
-            // here, if necessary, call preparations like calcCBMsAndLegalMoves();
+            calcCBMsAndLegalMoves(); // board changed, we need to recalc
             movesToDo = initBoardFromFEN(fenString);
         }
         completePreparation();  // TODO-TideEval -> check/take over this change to avoid double completeCalcs
@@ -761,7 +780,6 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
         List<Move> bestMoveCandidates = new ArrayList<>(maxBestMoves+(maxBestMoves>>1));
         List<Move> bestMoves = new ArrayList<>(maxBestMoves);
         List<Move> restMoves = new ArrayList<>();
-        //nrOfLegalMoves[color] = 0;
         boolean[] alphabetabreak = new boolean[]{false};  // array to be accessible from inside lambda :-/
         int[] alphaS = new int[]{alpha};
         int[] betaS = new int[]{beta};
@@ -1433,6 +1451,8 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
         // tell all Pieces to update their vPieces (to recalc the distances)
         ChessPiece mover = piecesOnBoard[pceID];
 
+        //TODO!!! update CBMs like in VBoard
+
         // TODO
 //        mover.updateDueToPceMove(frompos, topos);
 //        for (ChessPiece chessPiece : piecesOnBoard)
@@ -1739,7 +1759,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
     public String toString() {
         return "ChessBoard{" +
                 boardName + ": " +
-                "" + getGameStateDescription(gameState()) + ", " +
+                "" + getGameStateDescription() + ", " +
                 "FEN=" + getBoardFEN() +
                 '}';
     }

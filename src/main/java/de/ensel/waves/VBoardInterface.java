@@ -50,16 +50,17 @@ public interface VBoardInterface {
     int         getNrOfPieces   (int color);  // nr of pieces on the board, incl. kings - can get 0 for testboards without king
     ChessPiece  getPieceAt      (int pos);
     int         getPiecePos     (ChessPiece pce);
+    int         getClashResultAt(int pos);
 
 
     ////
     int         depth           ();
     int         futureLevel     ();
 
-
     //// default implementations
 
-    default String getGameStateDescription(GameState s) {
+    default String getGameStateDescription() {
+        GameState s = gameState();
         String res = switch (s) {
             case WHITE_WON -> chessBasicRes.getString("state.whiteWins");
             case BLACK_WON -> chessBasicRes.getString("state.blackWins");

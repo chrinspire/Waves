@@ -18,12 +18,15 @@
 
 package de.ensel.waves;
 
+import de.ensel.waves.clashes.CoverageBitMap;
+
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.waves.VBoardInterface.GameState.*;
+import static de.ensel.waves.clashes.Clashes.calcBiasedClash;
 
 public class VBoard implements VBoardInterface {
     public static int usageCounter = 0;
@@ -31,7 +34,8 @@ public class VBoard implements VBoardInterface {
     // VBoardInterface preBoard;
 
     // superseding data
-    private final int[] piecePos; // = new int[MAX_PIECES];
+    final private int[] piecePos; // = new int[MAX_PIECES];
+    int[][] cbms = new int[2][NR_SQUARES];   // CMBs (coverage bitmaps coded in 13 bits of one int) for each square per color
     private final Move[] moves;
     private int nrOfMoves = 0;
     private final int[] countPieces = new int[2];
@@ -53,6 +57,7 @@ public class VBoard implements VBoardInterface {
         this.countPieces[CIWHITE] = preBoard.countPieces[CIWHITE];
         this.countPieces[CIBLACK] = preBoard.countPieces[CIBLACK];
         // this.preBoard = preBoard;
+        this.cbms = Arrays.stream(preBoard.cbms).map(int[]::clone).toArray(int[][]::new);
         if (preBoard instanceof ChessBoard) {
             this.baseBoard = (ChessBoard)preBoard;
             this.piecePos = new int[MAX_PIECES];
@@ -94,6 +99,81 @@ public class VBoard implements VBoardInterface {
             capturedPiece = null;
         }
         piecePos[movingPiece.id()] = toPos;
+        adaptCBMs(move, capturedPiece, preBoard);
+    }
+
+
+    public void adaptCBMs(final Move move, final ChessPiece capturedPiece, final VBoard preBoard) {
+        // the move itself looses cover of the target square, but this is included in the next case:
+        //    removeCoverage(move.piece().color(), move.to(), move.piece().pieceType());
+        // remove coverage that was reachable from old pos but is not any more from the new pos
+        move.piece().coveringMovesStreamAfter(preBoard)
+                .filter(m -> {
+                    Move nextMove2mTo = m.piece().getMove(move.to(), m.to());
+                    return nextMove2mTo == null || !m.piece().isCoveringTargetAfter(nextMove2mTo, this);
+                })  // it is not legal move anymore
+                .forEach( noMoreMove -> {
+                    if ( !(move.piece() instanceof ChessPiecePawn && onSameFile(noMoreMove.to(),noMoreMove.from())))
+                        removeCoverage(move.piece().color(), noMoreMove.to(), move.piece().pieceType());
+                });
+
+        // Case a) "include moves that now can take this piece at the toPos"
+        // -> this case plays almost no role here, as it is only about covering: a move to here does not change anything about covering this square
+        // (except by the piece itself, but this is covered in e+f)
+
+        // Case b) "moves that could have taken this piece here"
+        // -> similar to a, this only applies to taking, but not for coverage.
+        // (but again the CBM is change in regards to the moving piece itself, which is now covering the fromSq,
+        //  but this is contained in Case e) addCoverage(color, from, pceType);)
+
+        // Case c) "moves that now can slide over the freed from-square" (except the moving piece itself)
+        baseBoard.getSquare(move.from()).getSingleMovesSlidingOverHereAfter(this)
+                .filter(m -> m.piece() != move.piece()
+                             && m.isCoveringAfter(this))
+                .forEach(enabledMove ->
+                        addCoverage(enabledMove.piece().color(), enabledMove.to(), enabledMove.piece().pieceType())
+                );
+                // Todo: Testcase needed: check what happens to pawns here, if they do not cover, but could now move to the square the became free
+
+        // Case d) "sliding moves that are now blocked at the toPos"
+        //Todo: check, does this treat the following correctly?:
+        //  also process blocked 1-hop moves incl. formerly capturing pawns and straight moving pawns,
+        //  as well as straight moving opponent pawns
+        if (capturedPiece == null) {
+            baseBoard.getSquare(move.to()).getSingleMovesSlidingOverHereAfter(this)
+                    .filter(m -> m.piece() != move.piece()
+                                 && m.isCoveringAfter(preBoard)  // it was covering before
+                                 && !m.isCoveringAfter(this))    // but not any more
+                    .forEach( blockedMove ->
+                            removeCoverage(blockedMove.piece().color(), blockedMove.to(), blockedMove.piece().pieceType())
+                    );
+        }
+        else {
+            // take away the captured piece's coverages
+            capturedPiece.coveringMovesStreamAfter(preBoard)
+                    .forEach( exMove -> {
+                        if ( !(capturedPiece instanceof ChessPiecePawn && onSameFile(exMove.to(),exMove.from())))
+                            removeCoverage(capturedPiece.color(), exMove.to(), capturedPiece.pieceType());
+                    });
+        }
+
+        // Case e)+f) "where can this piece additionally go from here"
+        move.piece().coveringMovesStreamAfter(this)
+                .filter(m -> {
+                    Move prevMove2mTo = m.piece().getMove(move.from(), m.to());
+                    return prevMove2mTo == null || !m.piece().isCoveringTargetAfter(prevMove2mTo, preBoard);
+                })  // it was not already covering before
+                .forEach( newMove ->
+                    addCoverage(move.piece().color(), newMove.to(), move.piece().pieceType())
+                );
+    }
+
+    private void addCoverage(int ofColor, int at, int byPceType) {
+        cbms[ofColor][at] = CoverageBitMap.addPieceOfTypeToCoverage(byPceType, cbms[ofColor][at]);
+    }
+
+    private void removeCoverage(int ofColor, int at, int byPceType) {
+        cbms[ofColor][at] = CoverageBitMap.removePieceOfTypeFromCoverage(byPceType, cbms[ofColor][at]);
     }
 
 
@@ -235,7 +315,7 @@ public class VBoard implements VBoardInterface {
                 move.addEval(new Evaluation(ChessBoard.checkmateEvalIn(nextBoard.getTurnCol(), depth()), 0));
             }
             move.getEval().setReason((this instanceof ChessBoard ? "" : this)
-                    + " " + move + "!" + nextBoard.getGameStateDescription(nextBoard.gameState()) + "!");
+                    + " " + move + "!" + nextBoard.getGameStateDescription() ); //nextBoard.gameState()) + "!");
             if (ChessBoard.DEBUGMSG_MOVESELECTION /* && upToNowBoard.futureLevel() == 0 */)
                 ChessBoard.debugPrintln(ChessBoard.DEBUGMSG_MOVESELECTION, debugOutputprefix
                         + "Reevaluated " /*+ move + " to " + move.getEval()
@@ -283,6 +363,10 @@ public class VBoard implements VBoardInterface {
 //                            .count());
 //    }
 
+    public int[] getCBMs(final int color) {
+        return cbms[color];
+    }
+
     @Override
     public int getPiecePos(final ChessPiece pce) {
         if (piecePos[pce.id()] == POS_UNSET) { // not yet set
@@ -291,7 +375,17 @@ public class VBoard implements VBoardInterface {
         return piecePos[pce.id()];
     }
 
-    private int calcPiecePos(ChessPiece pce) {
+    @Override
+    /** Calculate clash result, where both sides only take, if it is reasonable for them.
+     * Must be called _after_ a piece has moved here.
+     * @param pos
+     * @return eval0 value after clash
+     */
+    public int getClashResultAt(final int pos) {
+        return calcBiasedClash( getPieceAt(pos).pieceType(), cbms[CIWHITE][pos], cbms[CIBLACK][pos] );
+    }
+
+    private int calcPiecePos(final ChessPiece pce) {
         // check moves backwards, if this piece has already moved
         for (int i = nrOfMoves - 1; i >= 0; i--) {
             if (moves[i].piece() == pce)
