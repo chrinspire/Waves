@@ -740,8 +740,8 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
         //System.err.println("Getting best move for: " + board.toString());
         // Compare all moves returned by all my pieces and find the best.
         //Stream<Move> bestOpponentMoves = getBestMovesForColAfter( opponentColor(getTurnCol()), NOCHANGE );
-        if (engParams==null)
-            setEngParams(new ChessEngineParams(engineP1));
+        //if (engParams==null)
+        setEngParams(new ChessEngineParams(engineP1));
         Stream<Move> bestMoves    = getBestMovesForColAfter(getTurnCol(), engParams);
         bestMove = bestMoves.findFirst().orElse(null);
         //System.err.println("  --> " + bestMove );
@@ -757,6 +757,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
         if (true || DEBUGMSG_MOVESELECTION) {
             debugPrintln(DEBUGMSG_MOVESELECTION, "=> My best move (after looking at "
                     + countCalculatedBoards + " positions and " + VBoard.usageCounter + " moves"
+                    + " on level " + engParams.toString()
                     + "): " + bestMove +".");
             //debugPrintln(DEBUGMSG_MOVESELECTION, "(opponents best moves: " + bestOpponentMoves.findFirst().orElse(null) + ").");
         }
