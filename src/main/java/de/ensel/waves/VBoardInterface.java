@@ -20,7 +20,6 @@ package de.ensel.waves;
 
 import java.util.stream.Stream;
 
-import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.chessbasics.ChessBasics.chessBasicRes;
 
 /**
@@ -44,17 +43,21 @@ public interface VBoardInterface {
     int         captureEvalSoFar();
 
     //// squares & pieces
-    boolean     isSquareEmpty(int pos);
+    boolean     isSquareEmpty   (int pos);
     boolean     hasPieceOfColorAt(int color, int pos);
     Stream<ChessPiece> getPieces();
     Stream<ChessPiece> getPieces(int color);
     int         getNrOfPieces   (int color);  // nr of pieces on the board, incl. kings - can get 0 for testboards without king
-    ChessPiece  getPieceAt(int pos);
-    int         getPiecePos(ChessPiece pce);
+    ChessPiece  getPieceAt      (int pos);
+    int         getPiecePos     (ChessPiece pce);
+
 
     ////
-    int         depth();
-    int         futureLevel();
+    int         depth           ();
+    int         futureLevel     ();
+
+
+    //// default implementations
 
     default String getGameStateDescription(GameState s) {
         String res = switch (s) {

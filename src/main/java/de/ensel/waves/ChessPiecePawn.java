@@ -18,8 +18,7 @@
 
 package de.ensel.waves;
 
-import static de.ensel.chessbasics.ChessBasics.onSameFile;
-import static de.ensel.chessbasics.ChessBasics.opponentColor;
+import static de.ensel.chessbasics.ChessBasics.*;
 
 public class ChessPiecePawn extends ChessPiece {
     public ChessPiecePawn(ChessBoard myChessBoard, int pceType, int pceID, int pcePos) {
@@ -29,31 +28,33 @@ public class ChessPiecePawn extends ChessPiece {
     @Override
     public Move getDirectMoveAfter(int toPos, VBoard fb) {
         int fromPos = fb.getPiecePos(this);
-        if (exceptionNotPossibleForPawnAfter(fromPos, toPos, fb))
+        if (!movePossibleForPawnAfter(fromPos, toPos, fb))
             return null;
         return getMove(fromPos, toPos);
     }
 
     @Override
     public boolean isADirectMoveAfter(Move move, VBoard fb) {
-        if (exceptionNotPossibleForPawnAfter(move.from(), move.to(), fb))
-            return false;
-        return super.isADirectMoveAfter(move, fb);
+        return movePossibleForPawnAfter(move.from(), move.to(), fb);
     }
 
+    @Override
+    public boolean isCoveringTargetAfter(Move move, VBoard fb) {
+        return !onSameFile(move.to(), move.from());
+    }
 
-    private boolean exceptionNotPossibleForPawnAfter(int fromPos, int toPos, VBoard fb) {
-        if (onSameFile(fromPos, toPos)) {
-            // pawn can only go there if square is empty
-            if (!fb.isSquareEmpty(toPos))
-                return true;
-        }
-        else {
-            // pawn can only go there if it is a capture
-            if (!fb.hasPieceOfColorAt(opponentColor(color()), toPos))
-                return true;
-        }
-        return false;
+//    public boolean isADirectMoveAfter(Move move, VBoard fb) {
+//        if (exceptionNotPossibleForPawnAfter(move.from(), move.to(), fb))
+//            return false;
+//        return super.isADirectMoveAfter(move, fb);
+//    }
+
+
+    private boolean movePossibleForPawnAfter(int fromPos, int toPos, VBoard fb) {
+        if (onSameFile(fromPos, toPos))
+            return fb.isSquareEmpty(toPos);      // pawn can only go there if square is empty
+        else
+            return fb.hasPieceOfColorAt(opponentColor(color()), toPos);  // pawn can only go there if it is a capture
     }
 
 }

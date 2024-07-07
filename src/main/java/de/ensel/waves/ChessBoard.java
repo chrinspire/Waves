@@ -373,9 +373,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
      */
     void completePreparation() {
         resetBestMove();
-
-        continueDistanceCalcUpTo(MAX_INTERESTING_NROF_HOPS);
-
+        // not for now in Waves: continueDistanceCalcUpTo(MAX_INTERESTING_NROF_HOPS);
     }
 
     private void resetBestMove() {
@@ -484,13 +482,15 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
             movesToDo = getMoves(fenString.substring(fenPosAndMoves.length()));
         } else {
             // it seems the fenString is a later position of my current position or a totally different one
+            // board changed, we need to recalc:
+            // here, if necessary, call preparations like calcCBMsAndLegalMoves();
             movesToDo = initBoardFromFEN(fenString);
         }
         completePreparation();  // TODO-TideEval -> check/take over this change to avoid double completeCalcs
         if (movesToDo != null) {
             for (int i = 0; i < movesToDo.length; i++) {
                 if (!doMove(movesToDo[i])) {
-                    System.err.println("Error in fenstring moves: invalid move " + movesToDo[i] + " on " + this.getBoardFEN() + "");
+                    System.err.println("Error in fenstring moves: invalid move " + movesToDo[i] + " on " + this.getBoardFEN());
                     // try manually
                     basicMoveFromTo(movesToDo[i].from(), movesToDo[i].to());
                 }

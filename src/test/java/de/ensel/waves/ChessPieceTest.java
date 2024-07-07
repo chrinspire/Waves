@@ -281,7 +281,7 @@ class ChessPieceTest {
 
     @ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(ints = {BISHOP, BISHOP_BLACK, QUEEN, QUEEN_BLACK})
-    void legalMovesAfter_Test(int pceType) {
+    void legalMovesStreamAfter_Test(int pceType) {
         int p1Pos = coordinateString2Pos("b7");
         int p1ToPos = coordinateString2Pos("c7");
         int p2Pos = coordinateString2Pos("b4");

@@ -45,6 +45,7 @@ public class VBoard implements VBoardInterface {
 
     protected VBoard() {
         this.piecePos = new int[MAX_PIECES];
+        Arrays.fill(this.piecePos, POS_UNSET);
         moves = new Move[ChessEngineParams.MAX_SEARCH_DEPTH+3];  // + lookahead of primitive eval method
     }
 
@@ -61,7 +62,7 @@ public class VBoard implements VBoardInterface {
             return;
         }
         // else VBoard
-        VBoard preVB = (VBoard)preBoard;
+        VBoard preVB = preBoard;
         this.baseBoard = preVB.baseBoard;
         this.nrOfMoves = preVB.nrOfMoves;
         this.moves = preVB.moves;
@@ -76,7 +77,7 @@ public class VBoard implements VBoardInterface {
         return newVB;
     }
 
-    private VBoard addMove(VBoardInterface preBoard, Move move) {
+    private void addMove(VBoard preBoard, Move move) {
         usageCounter++;
         // if this new move captures a piece, let's remember that
         ChessPiece movingPiece = move.piece();
@@ -93,7 +94,6 @@ public class VBoard implements VBoardInterface {
             capturedPiece = null;
         }
         piecePos[movingPiece.id()] = toPos;
-        return this;
     }
 
 
@@ -336,8 +336,5 @@ public class VBoard implements VBoardInterface {
         }
         return foundAt;
     }
-
-
-
 }
 

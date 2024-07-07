@@ -316,10 +316,9 @@ public class ChessPiece {
             }
         }
 
-        Move res = new Move(move2Bevaluated)
-                .setEval(eval)
+        result.setEval(eval)
                 .addEval(fb.captureEvalSoFar(),0);
-        return res;
+        return result;
     }
 
 
@@ -336,6 +335,7 @@ public class ChessPiece {
         if (oppFUpEval != null && oppFUpEval.isGoodForColor(opponentColor(move.piece().color()))) {
             atToSqEval.addEval(oppFUpEval);
         }
+        // atToSqEval.addEval(fbNext.getClashResultAt(move.to()), 0);
         return atToSqEval;
     }
 
@@ -395,9 +395,12 @@ public class ChessPiece {
     private Move getBestDefenceEvalAfter(VBoard fb, VBoard fbAfter) {
         Evaluation bestDefenceEval = null;
         Move bestDefenceMove = null;
+        int origPcePos = fb.getPiecePos(this);
         for (Move move : coveringMovesAfter(fbAfter) ) {
-            if (move.to() == fb.getPiecePos(this))
-                continue; // I was not covering myself before the move and I will not do so after the move...
+            if (move.to() == origPcePos)
+                continue;; // I was not covering myself before the move and I will not do so after the move...
+            if (!fbAfter.hasPieceOfColorAt(color(),move.to()))
+                continue;  // there is no own piece, so I'd cover nothing...
             Evaluation evalBefore = getFollowUpEvalAtSqAfter(move.toSq(), fb);
             if (evalBefore == null)
                 continue;  // no capturing possible, even without me...

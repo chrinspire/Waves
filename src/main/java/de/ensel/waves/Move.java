@@ -347,7 +347,7 @@ public class Move implements Comparable<Move> {
                 && myPiece.isCoveringTargetAfter(this, fb);
     }
 
-    private boolean isBlockedByKingPin(VBoardInterface bc) {
+    private boolean isBlockedByKingPin(VBoard bc) {
         //TODO
         return false;
     }
@@ -358,13 +358,13 @@ public class Move implements Comparable<Move> {
         return new Evaluation(-piece().board().getPieceAt(to()).getValue(), 0);
     }
 
-    public Evaluation getSimpleMoveEvalAfter(VBoard bc) {
-        assert (isALegalMoveAfter(bc));
+    public Evaluation getSimpleMoveEvalAfter(VBoard fb) {
+        assert (isALegalMoveAfter(fb));
         // consider context of already done moves.
-       ChessPiece capturedPiece = bc.getPieceAt(to());
+       ChessPiece capturedPiece = fb.getPieceAt(to());
        if (capturedPiece == null)
            return new Evaluation();
-       return new Evaluation(-capturedPiece.getValue(), 0);  // bc.futureLevel());
+       return new Evaluation(-capturedPiece.getValue(), 0);  // fb.futureLevel());
     }
 
     @Override

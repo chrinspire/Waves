@@ -118,6 +118,7 @@ public class ChessBoardTest {
         ChessPiece p2 = board.getPieceAt(p2Pos);
         ChessPiece p3 = board.getPieceAt(p3Pos);
         ChessEngineParams engParams = new ChessEngineParams(LEVEL_TEST_QUICK);
+        board.completePreparation();
 
         // act
         Stream<Move> bestMoveForCol = board.getBestMovesForColAfter(CIWHITE, engParams, board, Integer.MIN_VALUE, Integer.MAX_VALUE);
