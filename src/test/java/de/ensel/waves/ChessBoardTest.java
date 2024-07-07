@@ -48,7 +48,7 @@ public class ChessBoardTest {
         "8/5k2/2R3r1/3K4/8/8/6R1/8 b - - 0 1, g6g2"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
-        doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
+        doAndTestPuzzle(fen,expectedBestMove, "SimpleTest", true);
     }
 
     @ParameterizedTest
