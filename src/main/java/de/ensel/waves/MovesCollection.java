@@ -23,6 +23,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 
+/**
+ * only use for Move-Lists with unique to-positions
+ */
 public class MovesCollection extends AbstractCollection<Move> {
     private HashMap<Integer, Move> moves;
 

@@ -44,6 +44,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
     public static boolean DEBUGMSG_MOVEEVAL = false;   // <-- best for checking why moves are evaluated the way they are
     public static boolean DEBUGMSG_MOVESELECTION = false || DEBUGMSG_MOVEEVAL;
     public static boolean DEBUGMSG_MOVESELECTION2 = false || DEBUGMSG_MOVESELECTION;
+    final public static int DEBUGMSG_MOVESELECTION2_MAXDEPTH = 2;
 
     public static boolean SHOW_REASONS = true;  // DEBUGMSG_MOVESELECTION;
 
@@ -54,8 +55,9 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
     private long boardHash;
     private List<List<Long>> boardHashHistory;  // 2 for the colors - then ArrayList<>(50) for 50 Hash values:
 
-    private int whiteKingPos;
-    private int blackKingPos;
+    final public int[] kingId = new int[]{NO_PIECE_ID, NO_PIECE_ID};   // as all [2] arrays it relies on CIWHITE and CIBLACK being 0 und 1
+    //    private int whiteKingPos;   // got rid of these two fields :-) use kingPos(CIWHITE) = kingId[col]->piece->pos
+    //    private int blackKingPos =
 
     private int currentDistanceCalcLimit;
 
@@ -79,7 +81,6 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
      */
     private ChessPiece[] piecesOnBoard;
     private int nextFreePceID;
-    public static final int NO_PIECE_ID = -1;  //todo: why not using EMPTY from ChessBasics piece types?
 
     private int[] countBishops = new int[2];  // count bishops for colorIndex
     private int[] countKnights = new int[2];  // count knights for colorIndex
@@ -157,8 +158,6 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
         enPassantFile = -1;    // -1 = not possible,   0 to 7 = possible to beat pawn of opponent on col A-H
         turn = CIWHITE;
         fullMoves = 0;
-        whiteKingPos = NOWHERE;
-        blackKingPos = NOWHERE;
         resetHashHistory();
     }
 
@@ -210,10 +209,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
     }
 
     public int distanceToKing(int pos, int kingColor) {
-        if (isWhite(kingColor))
-            return distanceBetween(pos, whiteKingPos);
-        else
-            return distanceBetween(pos, blackKingPos);
+        return distanceBetween(pos, kingPos(kingColor));
     }
 
     @Override
@@ -226,7 +222,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
 
 
     public int nrOfChecks(int color) {
-        int kingPos = getKingPos(color);
+        int kingPos = kingPos(color);
         if (kingPos < 0)
             return 0;  // king does not exist... should not happen, but is part of some test-positions
         Square kingSquare = getSquare(kingPos);
@@ -358,7 +354,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
         for (Square sq : getBoardSquares())
             sq.resetBlocksChecks();
         for (int color = 0; color <= 1; color++) { // for both colors
-            int kingpos = getKingPos(color);
+            int kingpos = kingPos(color);
             if (kingpos < 0)
                 continue;          // in some test-cases boards without kings are used, so skip this (instead of error/abort)
             List<ChessPiece> attackers = getSquare(kingpos).directAttackersWithout2ndRowWithColor(opponentColor(color));
@@ -440,11 +436,11 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
         if (isPieceTypeWhite(pceType)) {
             incNrOfPieces(CIWHITE);
             if (pceType == KING)
-                whiteKingPos = pos;
+                kingId[CIWHITE] = newPceID;
         } else {
             incNrOfPieces(CIBLACK);
             if (pceType == KING_BLACK)
-                blackKingPos = pos;
+                kingId[CIBLACK] = newPceID;
         }
 
         switch (colorlessPieceType(pceType)) {
@@ -600,10 +596,10 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
             int nextSeperator = i;
             while (nextSeperator < fenString.length() && fenString.charAt(nextSeperator) != ' ')
                 nextSeperator++;
-            String whiteKcastleSymbols = ".*[" + ( (char)((int) 'A' + fileOf(whiteKingPos)) ) + "-H].*";
-            String whiteQcastleSymbols = ".*[A-" + ( (char)((int) 'A' + fileOf(whiteKingPos)) ) + "].*";
-            String blackKcastleSymbols = ".*[" + ( (char)((int) 'a' + fileOf(blackKingPos)) ) + "-h].*";
-            String blackQcastleSymbols = ".*[a-" + ( (char)((int) 'a' + fileOf(blackKingPos)) ) + "].*";
+            String whiteKcastleSymbols = ".*[" + ( (char)((int) 'A' + fileOf(kingPos(CIWHITE))) ) + "-H].*";
+            String whiteQcastleSymbols = ".*[A-" + ( (char)((int) 'A' + fileOf(kingPos(CIWHITE))) ) + "].*";
+            String blackKcastleSymbols = ".*[" + ( (char)((int) 'a' + fileOf(kingPos(CIBLACK))) ) + "-h].*";
+            String blackQcastleSymbols = ".*[a-" + ( (char)((int) 'a' + fileOf(kingPos(CIBLACK))) ) + "].*";
             String castleIndicators = fenString.substring(i, nextSeperator);
             queensideCastlingAllowed[CIBLACK] = castleIndicators.contains("q") || ( castleIndicators.matches(blackQcastleSymbols));
             kingsideCastlingAllowed[CIBLACK] = castleIndicators.contains("k") || ( castleIndicators.matches(blackKcastleSymbols));
@@ -765,7 +761,6 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
         return result;
     }
 
-    final private int DEBUGMSG_MOVESELECTION2_MAXDEPTH = 2;
     Stream<Move> getBestMovesForColAfter(
             final int color,
             final ChessEngineParams engParams,
@@ -978,15 +973,15 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
         if (toposPceID != NO_PIECE_ID && !isBeatingSameColor ) {
             // if it is a rook, remove castling rights
             if ( toposType == ROOK ) {
-                if ( fileOf(topos) > fileOf(getKingPos(CIWHITE)))
+                if ( fileOf(topos) > fileOf(kingPos(CIWHITE)))
                     kingsideCastlingAllowed[CIWHITE] = false;
-                else if ( fileOf(topos) < fileOf(getKingPos(CIWHITE)))
+                else if ( fileOf(topos) < fileOf(kingPos(CIWHITE)))
                     queensideCastlingAllowed[CIWHITE] = false;
             }
             else if ( toposType == ROOK_BLACK ) {
-                if ( fileOf(topos) > fileOf(getKingPos(CIBLACK)))
+                if ( fileOf(topos) > fileOf(kingPos(CIBLACK)))
                     kingsideCastlingAllowed[CIBLACK] = false;
-                else if ( fileOf(topos) < fileOf(getKingPos(CIBLACK)))
+                else if ( fileOf(topos) < fileOf(kingPos(CIBLACK)))
                     queensideCastlingAllowed[CIBLACK] = false;
             }
             takePieceAway(topos);
@@ -1050,7 +1045,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
             ) {
                 if ( toposPceID == NO_PIECE_ID && topos == frompos+2 )  // seems to be std-chess notation (king moves 2 aside)
                     topos = findRook(frompos+1, coordinateString2Pos("h8"));
-                if ( CASTLING_KINGSIDE_ROOKTARGET[CIBLACK] ==blackKingPos ) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
+                if ( CASTLING_KINGSIDE_ROOKTARGET[CIBLACK] == kingPos(CIBLACK) ) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
                     takePieceAway(topos); // eliminate rook :*\
                     basicMoveFromTo(frompos, CASTLING_KINGSIDE_KINGTARGET[CIBLACK]);  // move king instead
                     frompos = NOWHERE;
@@ -1075,7 +1070,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
             ) {
                 if (toposPceID == NO_PIECE_ID && topos == frompos - 2)  // seems to be std-chess notation (king moves 2 aside)
                     topos = findRook(coordinateString2Pos("a8"), frompos - 1);
-                if (CASTLING_QUEENSIDE_ROOKTARGET[CIBLACK] == blackKingPos) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
+                if (CASTLING_QUEENSIDE_ROOKTARGET[CIBLACK] == kingPos(CIBLACK)) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
                     takePieceAway(topos); // eliminate rook :*\
                     basicMoveFromTo(frompos, CASTLING_QUEENSIDE_KINGTARGET[CIBLACK]);  // move king instead
                     frompos = NOWHERE;
@@ -1098,7 +1093,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
             ) {
                 if ( toposPceID == NO_PIECE_ID && topos == frompos+2 )  // seems to be std-chess notation (king moves 2 aside)
                     topos = findRook(frompos+1, coordinateString2Pos("h1"));
-                if ( CASTLING_KINGSIDE_ROOKTARGET[CIWHITE] ==whiteKingPos ) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
+                if ( CASTLING_KINGSIDE_ROOKTARGET[CIWHITE] == kingPos(CIWHITE) ) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
                     takePieceAway(topos); // eliminate rook :*\
                     basicMoveFromTo(frompos, CASTLING_KINGSIDE_KINGTARGET[CIWHITE]);  // move king instead
                     frompos = NOWHERE;
@@ -1122,7 +1117,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
             ) {
                 if (toposPceID == NO_PIECE_ID && topos == frompos - 2)  // seems to be std-chess notation (king moves 2 aside)
                     topos = findRook(coordinateString2Pos("a1"), frompos - 1);
-                if (CASTLING_QUEENSIDE_ROOKTARGET[CIWHITE] == whiteKingPos) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
+                if (CASTLING_QUEENSIDE_ROOKTARGET[CIWHITE] == kingPos(CIWHITE)) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
                     takePieceAway(topos); // eliminate rook :*\
                     basicMoveFromTo(frompos, CASTLING_QUEENSIDE_ROOKTARGET[CIWHITE]);  // move king instead
                     frompos = NOWHERE;
@@ -1201,7 +1196,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
 
 
     public boolean isKingsideCastlingPossible(int color) {
-        int kingPos = getKingPos(color);
+        int kingPos = kingPos(color);
         return (kingsideCastlingAllowed[color]
                 && !isCheck(color)
                 && (isSquareEmpty(CASTLING_KINGSIDE_KINGTARGET[color])
@@ -1477,10 +1472,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
     private void basicMoveFromTo(final int pceType, final int pceID, final int frompos, final int topos){
         if (frompos==topos)
             return;  // this is ok, e.g. in chess960 castling, a rook or king might end up in the exact same square again...
-        if (pceType == KING)
-            whiteKingPos = topos;
-        else if (pceType == KING_BLACK)
-            blackKingPos = topos;
+
         updateHashWithMove(frompos, topos);
         // re-place piece on board
         emptySquare(frompos);
@@ -1721,12 +1713,8 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
 //        return null;
 //    }
 
-    public int getKingPos(int color){
-        return isWhite(color) ? whiteKingPos : blackKingPos;
-    }
-
     public int getKingId(int color) {
-        return getPieceIdAt(getKingPos(color));
+        return kingId[color];
     }
 
     public static int getMAX_INTERESTING_NROF_HOPS() {

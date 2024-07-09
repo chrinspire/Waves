@@ -26,12 +26,13 @@ import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.waves.VBoardInterface.GameState.*;
 
 public class VBoard implements VBoardInterface {
+    public static final int NO_PIECE_ID = -1;  //todo: why not using EMPTY from ChessBasics piece types?
     public static int usageCounter = 0;
-    ChessBoard baseBoard;
+    ChessBoard baseBoard;    // a dependency to a subtype is unusual, but its my basis...
     // VBoardInterface preBoard;
 
     // superseding data
-    private final int[] piecePos; // = new int[MAX_PIECES];
+    private final int[] piecePos; // accessed by pceId
     private Move[] moves;
     private int nrOfMoves = 0;
     private final int[] countPieces = new int[2];
@@ -133,6 +134,14 @@ public class VBoard implements VBoardInterface {
     public Stream<ChessPiece> getPieces(int color) {
         return baseBoard.getPieces(color)
                 .filter( p -> getPiecePos(p) != NOWHERE );
+    }
+
+    final public int kingPos(final int color) {
+        if (baseBoard.kingId[color] == NO_PIECE_ID)
+            return NOWHERE;
+        if (piecePos[baseBoard.kingId[color]] == POS_UNSET)
+            return baseBoard.getPiece(baseBoard.kingId[color]).pos();
+        return piecePos[baseBoard.kingId[color]];
     }
 
     @Override
