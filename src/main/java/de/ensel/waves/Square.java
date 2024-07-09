@@ -246,17 +246,7 @@ public class Square {
                 .filter(move -> move.from() == fb.getPiecePos(move.piece()));
     }
 
-    public Stream<Move> getSingleMovesSlidingOverHereAfter(final int color, final VBoard fb) {
-        return depMovesOver[color].stream()
-                .filter(move -> move.from() == fb.getPiecePos(move.piece()));
-    }
-
-    public Stream<Move> getSingleMovesSlidingOverHereAfter(final VBoard fb) {
-        return  Stream.concat( getSingleMovesSlidingOverHereAfter(CIWHITE, fb),
-                               getSingleMovesSlidingOverHereAfter(CIBLACK, fb) );
-    }
-
-//    /**
+    //    /**
 //     * ! result is no copy, keep unmodified
 //     * @return List of Moves of all pieces that could slide over this square.
 //     */

@@ -63,11 +63,10 @@ public class VBoard implements VBoardInterface {
             return;
         }
         // else VBoard
-        VBoard preVB = preBoard;
-        this.baseBoard = preVB.baseBoard;
-        this.nrOfMoves = preVB.nrOfMoves;
-        this.moves = preVB.moves;               // this is not thread safe - it relies on clean backtracking, no "forking" path of valid VBoard existing in parallel. If needed, use createSafeCopy instead
-        this.piecePos = Arrays.copyOf(preVB.piecePos, preVB.piecePos.length);
+        this.baseBoard = preBoard.baseBoard;
+        this.nrOfMoves = preBoard.nrOfMoves;
+        this.moves = preBoard.moves;               // this is not thread safe - it relies on clean backtracking, no "forking" path of valid VBoard existing in parallel. If needed, use createSafeCopy instead
+        this.piecePos = Arrays.copyOf(preBoard.piecePos, preBoard.piecePos.length);
         this.capturedPiece = null;
     }
 
@@ -240,26 +239,27 @@ public class VBoard implements VBoardInterface {
         return nrOfMoves;
     }
 
+
+    //// more complex infos
     /**
      * Checks if the game has ended and sets the eval in move accordingly.
      * @param move just the target to put the eval in.
-     * @param nextBoard the board after the move
      * @param debugOutputprefix
      * @return true if the game has ended, false otherwise
      */
-    protected boolean checkAndSetGameEndEval(Move move, VBoard nextBoard, String debugOutputprefix) {
-        if (!nextBoard.hasLegalMoves(opponentColor(move.piece().color()))) {  // be sure it was not null due to not wanting to calc deeper any more
-            GameState state = nextBoard.gameState();
+    protected boolean checkAndSetGameEndEval(Move move, String debugOutputprefix) {
+        if (!hasLegalMoves(opponentColor(move.piece().color()))) {  // be sure it was not null due to not wanting to calc deeper any more
+            GameState state = gameState();
             if (state == DRAW) {
                 //TODO: use -piece-value-sum or other board evaluation here, so we do not like draws with more pieces on the board
                 Evaluation drawEval = new Evaluation(0, 0);
                 move.addEval(drawEval);
             }
             else {
-                move.addEval(new Evaluation(ChessBoard.checkmateEvalIn(nextBoard.getTurnCol(), depth()), 0));
+                move.addEval(new Evaluation(ChessBoard.checkmateEvalIn(getTurnCol(), depth()), 0));
             }
             move.getEval().setReason((this instanceof ChessBoard ? "" : this)
-                    + " " + move + "!" + nextBoard.getGameStateDescription(nextBoard.gameState()) + "!");
+                    + " " + move + "!" + getGameStateDescription(gameState()) + "!");
             if (ChessBoard.DEBUGMSG_MOVESELECTION2 /* && upToNowBoard.futureLevel() == 0 */)
                 ChessBoard.debugPrint(ChessBoard.DEBUGMSG_MOVESELECTION, debugOutputprefix
                         + "EOG:" /*+ move + " to " + move.getEval()
@@ -327,6 +327,9 @@ public class VBoard implements VBoardInterface {
         return pce.pos();
     }
 
+    public Stream<Move> getLegalMovesStream(int color) {
+        return getPieces(color).flatMap(p -> p.legalMovesStreamAfter(this));
+    }
 
     //// setter
 
@@ -361,6 +364,53 @@ public class VBoard implements VBoardInterface {
             }
         }
         return foundAt;
+    }
+
+    /**
+     * Selects the best capture moves for the given color.
+     * @param color        select for which player
+     * @param bestOppMoves where to add the moves
+     * @param maxBestMoves max nr of sorted best capturing moves (rest is discarded)
+     */
+    void getBestPositiveCaptureMoves(int color, List<Move> bestOppMoves, int maxBestMoves) {
+        List<Move> restOppMoves = new ArrayList<>();
+        getLegalMovesStream(color)
+                .filter(move -> hasPieceOfColorAt(opponentColor(color), move.to()) || move.isChecking())
+                .forEach(move -> {
+/*!*/       Evaluation oppEval = move.piece().getMoveEvalInclFollowUpAfter(move, this);
+            if (oppEval.isGoodForColor(color))
+                addMoveToSortedListOfCol( (new Move(move)).setEval(oppEval), bestOppMoves, color, maxBestMoves, restOppMoves);
+        });
+        if (ChessBoard.DEBUGMSG_MOVESELECTION2 && depth()< ChessBoard.DEBUGMSG_MOVESELECTION2_MAXDEPTH) // && upToNowBoard.futureLevel() == 0)
+            ChessBoard.debugPrint(ChessBoard.DEBUGMSG_MOVESELECTION, "OppCounterCapture: "
+                    + (bestOppMoves.isEmpty() ? "none" : bestOppMoves.get(0) + " " + bestOppMoves.get(0).getEval()
+                    // + "(" + bestOppMoves.get(0).getEval().getReason() + ").")
+                    //+ "Alternatives: " + Arrays.toString(bestOppMoves.toArray()) + ".");
+                       ));
+    }
+
+    public void calcSingleMovesSlidingOver(final Square toSq) {
+        firstMovesOverSq[toSq.pos()] = Stream.concat(toSq.depMovesOver[CIWHITE].stream(), toSq.depMovesOver[CIBLACK].stream())
+                .filter(move -> move.from() == getPiecePos(move.piece()))   // automatically filters out moves of captured pieces, as their pos is POS_UNSET
+                .toList();
+    }
+
+//    public Stream<Move> getSingleMovesStreamSlidingOver(final int color, final Square sq) {
+//        return firstMovesOverSq[sq.pos()][color].stream();
+//    }
+
+    public Stream<Move> getSingleMovesStreamSlidingOver(final Square sq) {
+        // old, when per color Streams are necessary
+        //        return  Stream.concat( getSingleMovesStreamSlidingOver(CIWHITE, sq),
+        //                               getSingleMovesStreamSlidingOver(CIBLACK, sq) );
+
+        if (firstMovesOverSq[sq.pos()] == null)
+            calcSingleMovesSlidingOver(sq);
+        return firstMovesOverSq[sq.pos()].stream();
+
+        // OR: w/o caching - had for now actually the same performance, becaus it was only called one per VBoard/Sq :-)
+//        return Stream.concat(sq.depMovesOver[CIWHITE].stream(), sq.depMovesOver[CIBLACK].stream())
+//                  .filter(move -> move.from() == getPiecePos(move.piece()));
     }
 }
 

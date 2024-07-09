@@ -258,7 +258,7 @@ class ChessPieceTest {
         board.completePreparation();
 
         // so far same setup as above, but evaluation different as now it is looked at the board after the move b7c7
-        VBoard fb = VBoard.createNext(board, p1.getDirectMoveAfter(p1ToPos, board));
+        VBoard fb = board.createNext(p1.getDirectMoveAfter(p1ToPos, board));
         p1Pos = p1ToPos;
 
         assertCannotMoveToAfter(p1, p2Pos, fb);
@@ -275,8 +275,8 @@ class ChessPieceTest {
         // 5  b.░░░   ░░░   ░░░   ░░░
         // 4 ░░░^b ░░░   ░░░   ░░░      p2: b or B in opposite color of p1
         //... A  B  C  D  E  F  G  H
-        VBoard fb2 = VBoard.createNext(board, p2.getDirectMoveAfter(p2ToPos, board));
-        VBoard fb3 = VBoard.createNext(fb2, p1.getDirectMoveAfter(p1ToPos, fb2));
+        VBoard fb2 = board.createNext(p2.getDirectMoveAfter(p2ToPos, board));
+        VBoard fb3 = fb2.createNext(p1.getDirectMoveAfter(p1ToPos, fb2));
         // target value a bit "fragile": captured piece value + the fact it was covering e7
         assertEval4MoveToAfter(p2, p1Pos, -p1.getValue()-evalForColor(EVAL_TENTH,p1.color()), fb3);
     }
@@ -306,8 +306,8 @@ class ChessPieceTest {
         // 5  x.░░░   ░░░   ░░░   ░░░
         // 4 ░░░^x ░░░   ░░░   ░░░      p2: rotated between B, b, Q and q
         //... A  B  C  D  E  F  G  H
-        VBoard fb1 = VBoard.createNext(board, p2.getDirectMoveAfter(p2ToPos, board));
-        VBoard fb2 = VBoard.createNext(fb1, p1.getDirectMoveAfter(p1ToPos, fb1));
+        VBoard fb1 = board.createNext(p2.getDirectMoveAfter(p2ToPos, board));
+        VBoard fb2 = fb1.createNext(p1.getDirectMoveAfter(p1ToPos, fb1));
         StringBuilder result = new StringBuilder();
         p2.legalMovesStreamAfter(fb2)
                 .sorted(Comparator.comparingInt(Move::hashId))
@@ -341,8 +341,8 @@ class ChessPieceTest {
         // 3    ░░░ r ░░░   ░░░   ░░░
         // 2 ░░░   ░░░   ░░░   ░░░
         //... A  B  C  D  E  F  G  H
-        VBoard fb3 = VBoard.createNext(fb2, p2.getDirectMoveAfter(p2ToPos2, fb2));
-        VBoard fb4 = VBoard.createNext(fb3, p1.getDirectMoveAfter(p1ToPos2, fb3));
+        VBoard fb3 = fb2.createNext(p2.getDirectMoveAfter(p2ToPos2, fb2));
+        VBoard fb4 = fb3.createNext(p1.getDirectMoveAfter(p1ToPos2, fb3));
         StringBuilder result2 = new StringBuilder();
         p2.legalMovesStreamAfter(fb4)
                 .sorted(Comparator.comparingInt(Move::hashId))
@@ -379,13 +379,13 @@ class ChessPieceTest {
 
         // 1st move
         int p1ToPos = coordinateString2Pos("c7");
-        VBoard fb1 = VBoard.createNext(board, p1.getDirectMoveAfter(p1ToPos, board));
+        VBoard fb1 = board.createNext(p1.getDirectMoveAfter(p1ToPos, board));
         // 2nd move
         int p2ToPos = coordinateString2Pos("a5");
-        VBoard fb2 = VBoard.createNext(fb1, p2.getDirectMoveAfter(p2ToPos, fb1));
+        VBoard fb2 = fb1.createNext(p2.getDirectMoveAfter(p2ToPos, fb1));
         // 3rd move
         int p1ToPos2 = coordinateString2Pos("c6");
-        VBoard fb3 = VBoard.createNext(fb2, p1.getDirectMoveAfter(p1ToPos2, fb2));
+        VBoard fb3 = fb2.createNext(p1.getDirectMoveAfter(p1ToPos2, fb2));
         // 8 ░░░   ░░░   ░░░   ░░░
         // 7    ░X-1. ░░░ B ░░░   ░░░   p1: rotated between R, r, Q and q
         // 6 ░░░   3X░   ░░░   ░░░      p3: same as p1
@@ -419,10 +419,10 @@ class ChessPieceTest {
         assertEquals(p3Pos, ((VBoardInterface) fb1).getPiecePos(p3));
         // 4th move
         int p2ToPos2 = coordinateString2Pos("b6");
-        VBoard fb4 = VBoard.createNext(fb3, p2.getDirectMoveAfter(p2ToPos2, fb3));
+        VBoard fb4 = fb3.createNext(p2.getDirectMoveAfter(p2ToPos2, fb3));
         // 5th move
         int p1ToPos3 = coordinateString2Pos("b6");  // xb
-        VBoard fb5 = VBoard.createNext(fb4, p1.getDirectMoveAfter(p1ToPos3, fb4));
+        VBoard fb5 = fb4.createNext(p1.getDirectMoveAfter(p1ToPos3, fb4));
 
         assertEquals(p1ToPos3, ((VBoardInterface) fb5).getPiecePos(p1));
         assertEquals(NOWHERE, ((VBoardInterface) fb5).getPiecePos(p2));

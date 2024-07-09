@@ -20,7 +20,11 @@ package de.ensel.waves;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static de.ensel.chessbasics.ChessBasics.*;
+import static de.ensel.waves.ChessBoard.DEBUGMSG_MOVEEVAL;
 import static org.junit.jupiter.api.Assertions.*;
 
 class VBoardTest {
@@ -51,13 +55,13 @@ class VBoardTest {
         // act
         Move p1move = p1.getMove(p1Pos,p3Pos);
         Move p2move = p2.getMove(p2Pos,p3Pos);
-        VBoard vBoard = VBoard.createNext(board, p2move );
+        VBoard vBoard = board.createNext(p2move );
 
         // assert
         assertEquals(true, vBoard.hasPieceOfColorAt(p2.color(), p3Pos));
 
         // repeat :-)
-        VBoard vBoard2 = VBoard.createNext(vBoard, p1move );
+        VBoard vBoard2 = vBoard.createNext(p1move );
         assertEquals(true, vBoard2.hasPieceOfColorAt(p1.color(), p3Pos));
     }
 
@@ -86,19 +90,19 @@ class VBoardTest {
         ChessPiece p3 = board.getPieceAt(p3Pos);
 
         // act
-        VBoard vBoard = VBoard.createNext(board, p1.getMove(p1Pos, pos4) );
+        VBoard vBoard = board.createNext(p1.getMove(p1Pos, pos4) );
 
         // assert
         assertEquals(true, vBoard.hasPieceOfColorAt(p3.color(), p3Pos));
         assertEquals(false, vBoard.hasPieceOfColorAt( opponentColor(p3.color()), p3Pos));
 
         // repeat :-)
-        VBoard vBoard2 = VBoard.createNext(vBoard, p2.getMove(p2Pos, p3Pos) );
+        VBoard vBoard2 = vBoard.createNext(p2.getMove(p2Pos, p3Pos) );
         assertEquals(true, vBoard2.hasPieceOfColorAt(p2.color(), p3Pos));
         assertEquals(false, vBoard2.hasPieceOfColorAt( opponentColor(p2.color()), p3Pos));
 
         // repeat :-)
-        VBoard vBoard3 = VBoard.createNext(vBoard2, p1.getMove(p1Pos, p3Pos) );
+        VBoard vBoard3 = vBoard2.createNext(p1.getMove(p1Pos, p3Pos) );
         assertEquals(true, vBoard3.hasPieceOfColorAt(p1.color(), p3Pos));
         assertEquals(false, vBoard3.hasPieceOfColorAt( opponentColor(p1.color()), p3Pos));
     }

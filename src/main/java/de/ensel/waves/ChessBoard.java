@@ -778,40 +778,37 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
         int[] betaS = new int[]{beta};
 
         //// do Pre-Eval:
-        upToNowBoard.getPieces(color)
-            .forEach( p -> {
-                p.legalMovesStreamAfter(upToNowBoard).forEach(move -> {
-                    if (!alphabetabreak[0]) { // like a for-break
-                        if (DEBUGMSG_MOVESELECTION2 && upToNowBoard.depth()<DEBUGMSG_MOVESELECTION2_MAXDEPTH) // && upToNowBoard.futureLevel() == 0)
-                            debugPrint(DEBUGMSG_MOVESELECTION2, debugOutputprefix + "PRE-eval: " + move + "    ");
-/*!*/                   Move evaluatedMove = p.evaluateMoveAfter(move, upToNowBoard);
-                        addMoveToSortedListOfCol(evaluatedMove, bestMoveCandidates, color, maxBestMoves + (maxBestMoves >> 1), restMoves);
-                        countCalculatedBoards++;
+        upToNowBoard.getLegalMovesStream(color).forEach(move -> {
+            if (!alphabetabreak[0]) { // like a for-break
+                if (DEBUGMSG_MOVESELECTION2 && upToNowBoard.depth()<DEBUGMSG_MOVESELECTION2_MAXDEPTH) // && upToNowBoard.futureLevel() == 0)
+                    debugPrint(DEBUGMSG_MOVESELECTION2, debugOutputprefix + "PRE-eval: " + move + "    ");
+/*!*/           Move evaluatedMove = move.piece().evaluateMoveAfter(move, upToNowBoard);
+                addMoveToSortedListOfCol(evaluatedMove, bestMoveCandidates, color, maxBestMoves + (maxBestMoves >> 1), restMoves);
+                countCalculatedBoards++;
 
-                        // alpha-beta-break-check (code duplication from below,... sorry :^)
-                        if (doABcheckInPresearch || evaluatedMove.mates()) {
-                            int bestEval0 = bestMoveCandidates.get(0).getEval().getEvalAt(0);
-                            if (isWhite(move.piece().color())) {
-                                alphaS[0] = max(alphaS[0], bestEval0);
-                                if (bestEval0 >= betaS[0] )
-                                    alphabetabreak[0] = true;
-                            }
-                            else {
-                                betaS[0]  = min(betaS[0], bestEval0);
-                                if (bestEval0 <= alphaS[0] )
-                                    alphabetabreak[0] = true;
-                            }
-                        }
-                        if (DEBUGMSG_MOVESELECTION2 && upToNowBoard.depth()<DEBUGMSG_MOVESELECTION2_MAXDEPTH) // && upToNowBoard.futureLevel() == 0)
-                            debugPrintln(DEBUGMSG_MOVESELECTION2,
-                                   "-> PRE-eval " + evaluatedMove + " = "
-                                    + evaluatedMove.getEval()
-                                    + " reason: " + evaluatedMove.getEval().getReason()
-                                    + (alphabetabreak[0] ? " <AB1-BREAK: "+alphaS[0]+", "+bestMoveCandidates.get(0).getEval().toString()+", "+betaS[0]+">" : "")
-                            );
+                // alpha-beta-break-check (code duplication from below,... sorry :^)
+                if (doABcheckInPresearch || evaluatedMove.mates()) {
+                    int bestEval0 = bestMoveCandidates.get(0).getEval().getEvalAt(0);
+                    if (isWhite(move.piece().color())) {
+                        alphaS[0] = max(alphaS[0], bestEval0);
+                        if (bestEval0 >= betaS[0] )
+                            alphabetabreak[0] = true;
                     }
-                });
-            });
+                    else {
+                        betaS[0]  = min(betaS[0], bestEval0);
+                        if (bestEval0 <= alphaS[0] )
+                            alphabetabreak[0] = true;
+                    }
+                }
+                if (DEBUGMSG_MOVESELECTION2 && upToNowBoard.depth()<DEBUGMSG_MOVESELECTION2_MAXDEPTH) // && upToNowBoard.futureLevel() == 0)
+                    debugPrintln(DEBUGMSG_MOVESELECTION2,
+                           "-> PRE-eval " + evaluatedMove + " = "
+                            + evaluatedMove.getEval()
+                            + " reason: " + evaluatedMove.getEval().getReason()
+                            + (alphabetabreak[0] ? " <AB1-BREAK: "+alphaS[0]+", "+bestMoveCandidates.get(0).getEval().toString()+", "+betaS[0]+">" : "")
+                    );
+            }
+        });
 
         if (DEBUGMSG_MOVESELECTION2 && upToNowBoard.depth()<DEBUGMSG_MOVESELECTION2_MAXDEPTH) // && upToNowBoard.futureLevel() == 0)
             debugPrintln(DEBUGMSG_MOVESELECTION2, debugOutputprefix + "Best PRE-eval moves: "
@@ -839,11 +836,11 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
                         || (upToNowBoard.futureLevel() <= 3          // deep dive also for more opponent moves?
                             && abs(move.getEval().getEvalAt(1)) >= 9)
                 ) {
-                    VBoard nextBoard = VBoard.createNext(upToNowBoard, move);
+                    VBoard nextBoard = upToNowBoard.createNext(move);
 /*!*/               Move bestOppMove = getBestMovesForColAfter(opponentColor(color), engParams, nextBoard, alpha, beta)
                             .findFirst().orElse(null);
                     if (bestOppMove != null) {
-                        upToNowBoard.checkAndSetGameEndEval(move, nextBoard, debugOutputprefix);  // should not happen and already be caught in the pre-eval above.
+                        nextBoard.checkAndSetGameEndEval(move, debugOutputprefix);  // should not happen and already be caught in the pre-eval above.
                         move.addEval(bestOppMove.getEval());
                         move.addEval(upToNowBoard.captureEvalSoFar(),0);
                         move.getEval().setReason( upToNowBoard + " " + move.toString()
@@ -855,7 +852,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
                                     + " reason: " */ + move.getEval().getReason());
                     }
                     else
-                        upToNowBoard.checkAndSetGameEndEval(move, nextBoard, debugOutputprefix);  // should not happen and already be caught in the pre-eval above.
+                        nextBoard.checkAndSetGameEndEval(move, debugOutputprefix);  // should not happen and already be caught in the pre-eval above.
                 }
                 addMoveToSortedListOfCol(move, bestMoves, color, maxBestMoves, restMoves);
                 // alpha-beta-break-check
@@ -891,27 +888,6 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
             debugPrintln(DEBUGMSG_MOVESELECTION2, debugOutputprefix + "(best line here: "
                     + (bestMoves.isEmpty() ? "none" : bestMoves.get(0) + " " + bestMoves.get(0).getEval() + "  " + bestMoves.get(0).getEval().getReason() + ").") );
         return Stream.concat( bestMoves.stream(), restMoves.stream());
-    }
-
-    void getBestPositiveCaptureMoves(int color, VBoard upToNowBoard, List<Move> bestOppMoves, int maxBestMoves) {
-        List<Move> restOppMoves = new ArrayList<>();
-        upToNowBoard.getPieces(color)
-                .forEach( p -> {
-                    p.legalMovesStreamAfter(upToNowBoard)
-                            .filter(move -> upToNowBoard.hasPieceOfColorAt(opponentColor(color), move.to())
-                                            || move.isChecking() )
-                            .forEach(move -> {
-/*!*/                           Evaluation oppEval = p.getMoveEvalInclFollowUpAfter(move, upToNowBoard);
-                                if (oppEval.isGoodForColor(color))
-                                    addMoveToSortedListOfCol( (new Move(move)).setEval(oppEval), bestOppMoves, color, maxBestMoves, restOppMoves);
-                            });
-                });
-        if (DEBUGMSG_MOVESELECTION2 && upToNowBoard.depth()<DEBUGMSG_MOVESELECTION2_MAXDEPTH) // && upToNowBoard.futureLevel() == 0)
-            debugPrint(DEBUGMSG_MOVESELECTION, "OppCounterCapture: "
-                    + (bestOppMoves.isEmpty() ? "none" : bestOppMoves.get(0) + " " + bestOppMoves.get(0).getEval()
-                    // + "(" + bestOppMoves.get(0).getEval().getReason() + ").")
-                    //+ "Alternatives: " + Arrays.toString(bestOppMoves.toArray()) + ".");
-                       ));
     }
 
     private String getDebugOutputSpacer(VBoard upToNowBoard) {
@@ -1285,7 +1261,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
         return true;
     }
 
-    public boolean doMove(String move){
+    public boolean doMove(String move) {
         int startpos = 0;
         // skip spaces
         while (startpos < move.length() && move.charAt(startpos) == ' ')
