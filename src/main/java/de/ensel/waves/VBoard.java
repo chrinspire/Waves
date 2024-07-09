@@ -70,18 +70,24 @@ public class VBoard implements VBoardInterface {
         this.capturedPiece = null;
     }
 
-    // factory, based on a VBoardInterface (VBoard or ChesBoard) + one move
-    public static VBoard createNext(VBoard preBoard, Move plusOneMove) {
-        VBoard newVB = new VBoard(preBoard);
-        newVB.addMove(preBoard, plusOneMove);
-        return newVB;
-    }
-
     public boolean isSafeCopy = false;
     public static VBoard createSafeCopy(VBoard other) {
         VBoard newVB = new VBoard(other);
         newVB.moves = Arrays.copyOf(other.moves, other.moves.length);
         newVB.isSafeCopy = true;
+        return newVB;
+    }
+
+    // factory, based on a VBoardInterface (VBoard or ChesBoard) + one move
+    public VBoard createNext(Move plusOneMove) {
+        VBoard newVB = new VBoard(this);
+        newVB.addMove(this, plusOneMove);
+        return newVB;
+    }
+
+    public VBoard createNext(String plusOneMoveString) {
+        VBoard newVB = new VBoard(this);
+        newVB.addMove(this, new Move( newVB, plusOneMoveString));
         return newVB;
     }
 
@@ -109,6 +115,7 @@ public class VBoard implements VBoardInterface {
             capturedPiece = null;
         }
         piecePos[movingPiece.id()] = toPos;
+        //calcSingleMovesSlidingOver(move.toSq());
     }
 
 

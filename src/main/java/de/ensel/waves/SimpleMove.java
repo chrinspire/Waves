@@ -149,12 +149,20 @@ public class SimpleMove {
 
     //// simple info
 
+    public int getDir() {
+        return calcDirFromTo(from(), to());
+    }
+
     public boolean isMove() {
         return from >= 0 && from < NR_SQUARES
                 && to >= 0 && to < NR_SQUARES;
     }
 
     public int promotesTo() {
+        return promotesTo;
+    }
+
+    public int promotesToOrQueen() {
         return promotesTo==EMPTY? QUEEN : promotesTo;
     }
 

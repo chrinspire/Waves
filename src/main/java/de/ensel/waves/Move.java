@@ -26,13 +26,10 @@ import static de.ensel.chessbasics.ChessBasics.*;
  *  Store and handles conditions, obstacles and consequences: i.e. which other moves are required to enable this move,
  *  which ones can block or delay this move and the other way round, which ones are enabled or blocked/delayed.
  */
-public class Move implements Comparable<Move> {
+public class Move extends SimpleMove implements Comparable<Move> {
     private ChessPiece myPiece;
     private Square fromSq;
-    private int fromPos;
     private Square toSq;
-    private int toPos;
-    private int promotesTo;
     private boolean isCheckGiving = false;
 
     private Square[] intermedSqs;
@@ -42,35 +39,40 @@ public class Move implements Comparable<Move> {
     //// Constructors
 
     public Move(ChessPiece myPiece, Square fromSq, Square toSq, Square[] intermedSqs) {
+        super(fromSq.pos(), toSq.pos(), EMPTY);
         this.myPiece = myPiece;
         this.fromSq = fromSq;
-        this.fromPos = fromSq.pos();
         this.toSq = toSq;
-        this.toPos = toSq.pos();
-        promotesTo = EMPTY;
         this.intermedSqs = intermedSqs;
     }
 
-    public Move(ChessPiece myPiece, Square fromSq, Square toSq, int promotesToPceTypee, Square[] intermedSqs) {
+    public Move(ChessPiece myPiece, Square fromSq, Square toSq, int promotesToPceType, Square[] intermedSqs) {
+        super(fromSq.pos(), toSq.pos(), promotesToPceType);
         this.myPiece = myPiece;
         this.fromSq = fromSq;
-        this.fromPos = fromSq.pos();
         this.toSq = toSq;
-        this.toPos = toSq.pos();
-        promotesTo = promotesToPceTypee;
         this.intermedSqs = intermedSqs;
     }
 
     public Move(Move origin) {
+        super(origin.from(), origin.to(), origin.promotesTo());
         this.myPiece = origin.myPiece;
         this.fromSq = origin.fromSq;
-        this.fromPos = origin.fromPos;
         this.toSq = origin.toSq;
-        this.toPos = origin.toPos;
-        this.promotesTo = origin.promotesTo;
         this.isCheckGiving = origin.isCheckGiving;
         this.eval = origin.eval;
         this.intermedSqs = origin.intermedSqs;
+    }
+
+    public Move(VBoard board, String moveString) {
+        super(moveString);
+        this.myPiece = board.getPieceAt(from());
+        this.fromSq = board.baseBoard.getSquare(from());
+        this.toSq = board.baseBoard.getSquare(to());
+
+        // todo! too lacy now, as this is only used in test cases
+        this.isCheckGiving = false;
+        this.intermedSqs = null;
     }
 
     boolean isStraightMovingPawn() {
@@ -87,7 +89,7 @@ public class Move implements Comparable<Move> {
      * @param futureLevel the future level from 0..max
      */
     Move addEval(int evalValue, int futureLevel) {
-        eval.addEval(evalValue,futureLevel);
+        eval.addEval(evalValue, futureLevel);
         return this;
     }
 
@@ -225,28 +227,28 @@ public class Move implements Comparable<Move> {
 
     //// Overrides
 
-    @Override
-    public String toString() {
-        return "" +
-                fromSq.toString()
-            // for debugging only    + (isBasicallyALegalMove() ? "" : "'")
-                + toSq.toString()
-                + ( promotesTo!=EMPTY  ? Character.toLowerCase(fenCharFromPceType(promotesTo)) : "");
-               // + "->" + eval.toString();
-    }
+//    @Override
+//    public String toString() {
+//        return "" +
+//                fromSq.toString()
+//            // for debugging only    + (isBasicallyALegalMove() ? "" : "'")
+//                + toSq.toString()
+//                + ( promotesTo()!=EMPTY  ? Character.toLowerCase(fenCharFromPceType(promotesTo())) : "");
+//               // + "->" + eval.toString();
+//    }
 
-    /**
+    /*
      * std.equals(), hint: does not compare evaluation!
      * @param o other move to compare with
      * @return true if members from, to and promotesTo are equal, false otherwise
      */
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Move)) return false;
-        Move move = (Move) o;
-        return fromSq.pos() == move.fromSq.pos() && toSq.pos() == move.toSq.pos() && promotesTo == move.promotesTo;
-    }
+    //    @Override
+    //    public boolean equals(Object o) {
+    //        if (this == o) return true;
+    //        if (!(o instanceof Move)) return false;
+    //        Move move = (Move) o;
+    //        return fromSq.pos() == move.fromSq.pos() && toSq.pos() == move.toSq.pos() && promotesTo() == move.promotesTo();
+    //    }
 
     @Override
     public int hashCode() {
@@ -256,38 +258,12 @@ public class Move implements Comparable<Move> {
 
     //// simple info
 
-    public int getDir() {
-        return calcDirFromTo(from(), to());
-    }
-
-    public int promotesTo() {
-        return promotesTo==EMPTY? QUEEN : promotesTo;
-    }
-
-    public Integer hashId() {
-        return (fromSq.pos() << 8) + toSq.pos();
-    }
-
     public int getSingleValueEval() {
         return eval.getEvalAt(0);
     }
 
-    public boolean isMove() {
-        return fromSq != null && toSq != null
-                && fromSq.pos() >= 0 && fromSq.pos() < NR_SQUARES
-                && toSq.pos() >= 0 && toSq.pos() < NR_SQUARES;
-    }
-
 
     //// getter
-
-    public int from() {
-        return fromPos; // fromSq.pos();
-    }
-
-    public int to() {
-        return toPos;
-    }
 
     public boolean isChecking() {
         return isCheckGiving;
@@ -315,10 +291,6 @@ public class Move implements Comparable<Move> {
 
 
     //// setter
-
-    public void setPromotesTo(final int pceType) {
-        promotesTo = pceType;
-    }
 
     public void setisChecking() {
         isCheckGiving = true;

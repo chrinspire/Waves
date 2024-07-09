@@ -916,7 +916,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
     }
 
     boolean doMove (SimpleMove m) {
-        return doMove(m.from(), m.to(), m.promotesTo());
+        return doMove(m.from(), m.to(), m.promotesToOrQueen());
     }
 
     boolean doMove ( int frompos, int topos, int promoteToPceType){
