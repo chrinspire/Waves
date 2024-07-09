@@ -19,10 +19,10 @@
 package de.ensel.waves;
 
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static de.ensel.chessbasics.ChessBasics.*;
+import static de.ensel.waves.Move.addMoveToSortedListOfCol;
 import static de.ensel.waves.VBoardInterface.GameState.*;
 
 public class VBoard implements VBoardInterface {
@@ -37,6 +37,9 @@ public class VBoard implements VBoardInterface {
     private int nrOfMoves = 0;
     private final int[] countPieces = new int[2];
 
+    // local caching
+    private final List<Move>[] firstMovesOverSq = new List[NR_SQUARES];
+
     // for debugging only
     private ChessPiece capturedPiece;
     private int captureEvalSoFar = 0;
@@ -45,14 +48,18 @@ public class VBoard implements VBoardInterface {
     //// constructor + factory
 
     protected VBoard() {
+        this.baseBoard = (ChessBoard) this;
         this.piecePos = new int[MAX_PIECES];
         Arrays.fill(this.piecePos, POS_UNSET);
+        // leave it null for now.  Arrays.setAll(this.firstMovesOverSq, i -> new ArrayList<Move>());
         moves = new Move[ChessEngineParams.MAX_SEARCH_DEPTH+3];  // + lookahead of primitive eval method
     }
 
     private VBoard(VBoard preBoard) {
         this.countPieces[CIWHITE] = preBoard.countPieces[CIWHITE];
         this.countPieces[CIBLACK] = preBoard.countPieces[CIBLACK];
+        //this.firstMovesOverSq = Arrays.copyOf(preBoard.firstMovesOverSq, NR_SQUARES);
+        //no copy for now: Arrays.setAll(this.firstMovesOverSq, i -> preBoard.firstMovesOverSq[i]);   // we take over all first piece moves of each square from the prBoard, and then exchange the changed ones.
         // this.preBoard = preBoard;
         if (preBoard instanceof ChessBoard) {
             this.baseBoard = (ChessBoard)preBoard;
