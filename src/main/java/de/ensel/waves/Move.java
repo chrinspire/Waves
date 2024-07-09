@@ -316,7 +316,7 @@ public class Move implements Comparable<Move> {
 
     //// setter
 
-    public void setPromotesTo(int pceType) {
+    public void setPromotesTo(final int pceType) {
         promotesTo = pceType;
     }
 
@@ -324,7 +324,7 @@ public class Move implements Comparable<Move> {
         isCheckGiving = true;
     }
 
-    public Move setEval(Evaluation eval) {
+    public Move setEval(final Evaluation eval) {
         this.eval = eval;
         return this;
     }
@@ -333,7 +333,7 @@ public class Move implements Comparable<Move> {
         return isALegalMoveAfter(piece().board());
     }
 
-    public boolean isALegalMoveAfter(VBoard fb) {
+    public boolean isALegalMoveAfter(final VBoard fb) {
         int pos = fb.getPiecePos(piece());
         if ( pos == NOWHERE )  //was: fb.isCaptured(piece())
             return false;
@@ -342,7 +342,7 @@ public class Move implements Comparable<Move> {
                 && myPiece.isADirectMoveAfter(this, fb);
     }
 
-    public boolean isCoveringAfter(VBoard fb) {
+    public boolean isCoveringAfter(final VBoard fb) {
         int pos = fb.getPiecePos(piece());
         if ( pos == NOWHERE )  //was: fb.isCaptured(piece())
             return false;
@@ -351,7 +351,7 @@ public class Move implements Comparable<Move> {
                 && myPiece.isCoveringTargetAfter(this, fb);
     }
 
-    private boolean isBlockedByKingPin(VBoard bc) {
+    private boolean isBlockedByKingPin(final VBoard bc) {
         //TODO
         return false;
     }

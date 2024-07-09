@@ -47,7 +47,7 @@ public class CsvTests {
                                                          String themes, String gameUrl, String openingTags) {
         ChessBoard.DEBUGMSG_MOVEEVAL = false;
         ChessBoard.DEBUGMSG_MOVESELECTION = false;
-        doAndTestPuzzle(fen, moves, themes, false);
+        doAndTestPuzzle(fen, moves, themes, false, false);
     }
 
     @ParameterizedTest
@@ -59,7 +59,7 @@ public class CsvTests {
                                            String themes, String gameUrl, String openingTags) {
         ChessBoard.DEBUGMSG_MOVEEVAL = false;
         ChessBoard.DEBUGMSG_MOVESELECTION = false;
-        doAndTestPuzzle(fen, moves, themes, false);
+        doAndTestPuzzle(fen, moves, themes, false, false);
     }
 
     @Disabled
@@ -72,7 +72,7 @@ public class CsvTests {
                                                   String themes, String gameUrl, String openingTags) {
         ChessBoard.DEBUGMSG_MOVEEVAL = false;
         ChessBoard.DEBUGMSG_MOVESELECTION = false;
-        doAndTestPuzzle(fen, moves, themes, false);
+        doAndTestPuzzle(fen, moves, themes, false, false);
     }
 
     @Disabled
@@ -85,7 +85,7 @@ public class CsvTests {
                                            String themes, String gameUrl, String openingTags) {
         ChessBoard.DEBUGMSG_MOVEEVAL = false;
         ChessBoard.DEBUGMSG_MOVESELECTION = false;
-        doAndTestPuzzle(fen, moves, themes, false);
+        doAndTestPuzzle(fen, moves, themes, false, false);
     }
 
     @Disabled
@@ -98,7 +98,7 @@ public class CsvTests {
                                                   String themes, String gameUrl, String openingTags) {
         ChessBoard.DEBUGMSG_MOVEEVAL = false;
         ChessBoard.DEBUGMSG_MOVESELECTION = false;
-        doAndTestPuzzle(fen, moves, themes, false);
+        doAndTestPuzzle(fen, moves, themes, false, false);
     }
 
     @Disabled
@@ -111,7 +111,7 @@ public class CsvTests {
                                                   String themes, String gameUrl, String openingTags) {
         ChessBoard.DEBUGMSG_MOVEEVAL = false;
         ChessBoard.DEBUGMSG_MOVESELECTION = false;
-        doAndTestPuzzle(fen, moves, themes, false);
+        doAndTestPuzzle(fen, moves, themes, false, false);
     }
 
 //    @CsvFileSource(resources = "lichess_db_puzzle_230601_410-499-mateIn1.csv",

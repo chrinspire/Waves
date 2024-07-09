@@ -32,7 +32,7 @@ public class VBoard implements VBoardInterface {
 
     // superseding data
     private final int[] piecePos; // = new int[MAX_PIECES];
-    private final Move[] moves;
+    private Move[] moves;
     private int nrOfMoves = 0;
     private final int[] countPieces = new int[2];
 
@@ -57,7 +57,7 @@ public class VBoard implements VBoardInterface {
             this.baseBoard = (ChessBoard)preBoard;
             this.piecePos = new int[MAX_PIECES];
             Arrays.fill(this.piecePos, POS_UNSET);
-            moves = new Move[ChessEngineParams.MAX_SEARCH_DEPTH+3];  // + lookahead of primitive eval method
+            moves = new Move[ChessEngineParams.MAX_SEARCH_DEPTH+5];  // + lookahead of primitive eval method incl. recursive local clashes
             Arrays.fill(this.piecePos, POS_UNSET);
             return;
         }
@@ -65,7 +65,7 @@ public class VBoard implements VBoardInterface {
         VBoard preVB = preBoard;
         this.baseBoard = preVB.baseBoard;
         this.nrOfMoves = preVB.nrOfMoves;
-        this.moves = preVB.moves;
+        this.moves = preVB.moves;               // this is not thread safe - it relies on clean backtracking, no "forking" path of valid VBoard existing in parallel. If needed, use createSafeCopy instead
         this.piecePos = Arrays.copyOf(preVB.piecePos, preVB.piecePos.length);
         this.capturedPiece = null;
     }
@@ -77,11 +77,26 @@ public class VBoard implements VBoardInterface {
         return newVB;
     }
 
+    public boolean isSafeCopy = false;
+    public static VBoard createSafeCopy(VBoard other) {
+        VBoard newVB = new VBoard(other);
+        newVB.moves = Arrays.copyOf(other.moves, other.moves.length);
+        newVB.isSafeCopy = true;
+        return newVB;
+    }
+
     private void addMove(VBoard preBoard, Move move) {
         usageCounter++;
         // if this new move captures a piece, let's remember that
         ChessPiece movingPiece = move.piece();
         int toPos = move.to();
+        if (nrOfMoves == moves.length) {
+            // emergency, the moves array was too small
+            Move[] oldMoves = moves;
+            moves = new Move[nrOfMoves+5];
+            for (int i = 0; i < nrOfMoves; i++)
+                moves[i] = oldMoves[i];
+        }
         moves[nrOfMoves++] = move;   // needs to be called first, so depth will be correct from here on
         if (preBoard.hasPieceOfColorAt(opponentColor(move.piece().color()), toPos)) {
             // it's a capture
@@ -217,9 +232,9 @@ public class VBoard implements VBoardInterface {
     }
 
     /**
-     * Checks if the game has ended and sets the eval accordingly.
-     * @param move
-     * @param nextBoard
+     * Checks if the game has ended and sets the eval in move accordingly.
+     * @param move just the target to put the eval in.
+     * @param nextBoard the board after the move
      * @param debugOutputprefix
      * @return true if the game has ended, false otherwise
      */

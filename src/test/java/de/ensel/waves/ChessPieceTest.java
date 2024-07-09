@@ -24,6 +24,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import java.util.Comparator;
 
 import static de.ensel.chessbasics.ChessBasics.*;
+import static de.ensel.waves.ChessBoard.DEBUGMSG_MOVEEVAL;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ChessPieceTest {
@@ -436,4 +437,23 @@ class ChessPieceTest {
 
     }
 
+    @Test
+    void getMoveEvalInclFollowUpAfter_Test() {
+        DEBUGMSG_MOVEEVAL = true;
+        ChessBoard board = new ChessBoard("6k1/p4pbp/5n2/2pnp1N1/6P1/1rN2P2/7P/B2K3R w - - 0 37");
+        ChessPiece rook = board.getPieceAt(coordinateString2Pos("b3"));
+        ChessPiece dyingHorse = board.getPieceAt(coordinateString2Pos("c3"));
+        ChessPiece otherDyingHorse = board.getPieceAt(coordinateString2Pos("d5"));
+        ChessPiece bishop = board.getPieceAt(coordinateString2Pos("a1"));
+
+        Move move = rook.getDirectMoveAfter(coordinateString2Pos("c3"), board);
+        Evaluation eval = rook.getMoveEvalInclFollowUpAfter( move, board);
+
+        assertEquals( -rook.getValue() -dyingHorse.getValue() -bishop.getValue(), eval.getEvalAt(0));
+        System.out.println();
+
+        move = otherDyingHorse.getDirectMoveAfter(coordinateString2Pos("c3"), board);
+        eval = otherDyingHorse.getMoveEvalInclFollowUpAfter( move, board);
+        assertEquals( -dyingHorse.getValue() , eval.getEvalAt(0), 15);  // NOT -otherDyingHorse.getValue() -dyingHorse.getValue() -bishop.getValue(), because bishop will not take
+    }
 }

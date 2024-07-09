@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.stream.Stream;
 import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.waves.ChessBoard.*;
+import static de.ensel.waves.Move.addMoveToSortedListOfCol;
 import static java.lang.Math.max;
 
 public class ChessPiece {
@@ -180,16 +181,17 @@ public class ChessPiece {
         if (move2Bevaluated == null || !move2Bevaluated.isALegalMoveAfter(fb))
             return null;
         VBoard fbAfter = VBoard.createNext(fb, move2Bevaluated);
+        VBoard fb_safecopy = VBoard.createSafeCopy(fb);
 
         Move result = new Move(move2Bevaluated);
-        if (fb.checkAndSetGameEndEval(result, fbAfter, ""))
+        if (fb_safecopy.checkAndSetGameEndEval(result, fbAfter, ""))
             return result;
 
         if (DEBUGMSG_MOVEEVAL)
-            System.out.println("Evaluating move " + move2Bevaluated + " after <"+fb+">:");
+            System.out.println("Evaluating move " + move2Bevaluated + " after <"+fb_safecopy+">:");
 
         // basic evaluation
-        final Evaluation eval = move2Bevaluated.getSimpleMoveEvalAfter(fb);
+        final Evaluation eval = move2Bevaluated.getSimpleMoveEvalAfter(fb_safecopy);
         if (SHOW_REASONS && !eval.isAboutZero())
             eval.addReason("direct_effect+" + eval);
 
@@ -201,7 +203,7 @@ public class ChessPiece {
         //                .filter(oppMove -> oppMove.isALegalMoveAfter(fbAfter))
         //                .forEach(oppMove -> {
 
-        Evaluation oppFUpEval = getFollowUpEvalAtSqAfter(toSq, fbAfter);
+        Evaluation oppFUpEval = getLocalFollowUpEvalAtSqAfter(toSq, fbAfter);
         if (oppFUpEval != null && oppFUpEval.isGoodForColor(opponentColor(color()))) {
             addEvalWithReason("likely_being_captured_on_"+toSq, null, eval, oppFUpEval);
         }
@@ -223,76 +225,82 @@ public class ChessPiece {
             //                    eval.addEval(move.getSimpleMoveEvalAfter(fbAfter));
             //                });
         Square fromSq = board.getSquare(move2Bevaluated.from());
-        ChessPiece cheapestFromPosAttacker = fromSq.cheapestAttackersOfColorToHereAfter(opponentColor(color()), fb);
+        /* needs to be calculated negatively by the neighbouring nodes of not moving away, not positively here
+        ChessPiece cheapestFromPosAttacker = fromSq.cheapestAttackersOfColorToHereAfter(opponentColor(color()), fb_safecopy);
         if (cheapestFromPosAttacker != null) {
-            Move disabledCapture = cheapestFromPosAttacker.getDirectMoveAfter(move2Bevaluated.from(), fb);
+            Move disabledCapture = cheapestFromPosAttacker.getDirectMoveAfter(move2Bevaluated.from(), fb_safecopy);
             if (disabledCapture != null) {
-                Evaluation disabledCaptureEval = cheapestFromPosAttacker.getMoveEvalInclFollowUpAfter(move2Bevaluated, fb);
+                Evaluation disabledCaptureEval = cheapestFromPosAttacker.getMoveEvalInclFollowUpAfter(disabledCapture, fb_safecopy);
                 if (!disabledCaptureEval.isAboutZero()) {
-                    //disabledCaptureEval
+                    disabledCaptureEval
                             // .timeWarp(+1)  // TODO!: +1 is not supported correctly by the (older) eval-comparison
-                    //        .invert();  // capturing if do not move is an opponents move coming (potentially) after my moves
+                            .invert();
                     addEvalWithReason("avoiding_capture_by", disabledCapture, eval, disabledCaptureEval );
                 }
             }
-        }
+        } */
 
         // c) enable moves that now can slide over this square here
         //Todo: should not add all moves, but only all best moves per piece
         fromSq.getSingleMovesSlidingOverHereAfter(fbAfter)
                 .filter(move -> move.piece() != move2Bevaluated.piece()
                                 && move.to() != move2Bevaluated.to()  // these cases were covered in a) already
-                                && move.isCoveringAfter(fb))
+                                && move.isCoveringAfter(fb_safecopy))
                 .forEach(move -> {
-                    adaptEvalForEnabledMove("enabling", move, eval, fb, fbAfter);
+                    adaptEvalForEnabledMove("enabling", move, eval, fb_safecopy, fbAfter);
                 });
 
-        // d) delay sliding moves that are now blocked at the toPos
-        //Todo: check, does this treat the following correctly?:
-        //  also process blocked 1-hop moves incl. formerly capturing pawns and straight moving pawns,
-        //  as well as straight moving opponent pawns
-        ChessPiece capturedPce = fb.getPieceAt(move2Bevaluated.to());
-        if (capturedPce == null) {
-            // there was nobody there, so we really block the toSq
-            toSq.getSingleMovesSlidingOverHereAfter(fbAfter)
-                    .filter(m -> m.piece() != move2Bevaluated.piece()
-                                 && m.isCoveringAfter(fb)            // it was covering before
-                                 && !m.isCoveringAfter(fbAfter))     // but not any more
-                    .forEach(move -> {
-                        adaptEvalForDisabledMove("blocking", move, eval, fb, fbAfter);
-                    });
-            // todo: collect the missed chances of the captured pieces in the exchange sequence
-        }
-        else {
-            // it was already blocked, but
-            // h) we take away the chances of the captured piece
-            capturedPce.coveringMovesStreamAfter(fb)
-                    .filter(m -> !m.isStraightMovingPawn())
-                    .forEach( exMove -> {
-                        adaptEvalForDisabledMove("captured", exMove, eval, fb, fbAfter);
-                    });
-        }
-
         if (oppFUpEval == null || oppFUpEval.isGoodForColor(color())) {
-            // we are on a (relatively) save square, so let's check the follow ups
+            // we are on a (relatively) save square, so let's check the consequences and follow-ups there
+
+            // d) delay sliding moves that are now blocked at the toPos
+            //Todo: check, does this treat the following correctly?:
+            //  also process blocked 1-hop moves incl. formerly capturing pawns and straight moving pawns,
+            //  as well as straight moving opponent pawns
+            ChessPiece capturedPce = fb_safecopy.getPieceAt(move2Bevaluated.to());
+            if (capturedPce == null) {
+                // there was nobody there, so we really block the toSq
+                toSq.getSingleMovesSlidingOverHereAfter(fbAfter)
+                        .filter(m -> m.piece() != move2Bevaluated.piece()
+                                     && m.isCoveringAfter(fb_safecopy)            // it was covering before
+                                     && !m.isCoveringAfter(fbAfter))     // but not any more
+                        .forEach(blockedMove -> {
+                            adaptEvalForDisabledMove("blocking", blockedMove, eval, fb_safecopy, fbAfter);
+                        });
+                // todo: collect the missed chances of the captured pieces in the exchange sequence
+            }
+            else {
+                // it was already blocked, but
+                // h) we take away the chances of the captured piece
+                capturedPce.coveringMovesStreamAfter(fb_safecopy)
+                        .filter(m -> !m.isStraightMovingPawn())
+                        .forEach( exMove -> {
+                            adaptEvalForDisabledMove("captured", exMove, eval, fb_safecopy, fbAfter);
+                        });
+            }
 
             // e) see what this piece can capture from here
-            Move bestDirectFollowUpMove = getBestEvaluatedDirectFollowUpMoveAfterExceptReachableFromAfter(fbAfter, move2Bevaluated.from(), fb);
-            if (bestDirectFollowUpMove != null) {
-                Evaluation nextBestEval = bestDirectFollowUpMove.getEval();
-                if (nextBestEval.isGoodForColor(color())) {
-                    if (oppFUpEval != null && oppFUpEval.isBetterForColorThan(opponentColor(color()), nextBestEval)) {
-                        // beating my piece is less bad for the opponent then the followup, so let's not calculate my followup, but his (taking my piece)
-                        nextBestEval = oppFUpEval;
-                    }
-                    nextBestEval.timeWarp(+2);  // attention: may have side-effect on oppFUpEval (which is "luckily" not used any more)
-                    addEvalWithReason("threatening", bestDirectFollowUpMove, eval, nextBestEval);
+            List<Move> bestDirectFollowUpMoves = getBestEvaluatedDirectFollowUpMovesAfterExceptReachableFromAfter(fbAfter, move2Bevaluated.from(), fb_safecopy);
+            if (!bestDirectFollowUpMoves.isEmpty() && bestDirectFollowUpMoves.get(0).getEval().isGoodForColor(color())) {
+                Move bestDirectFollowUpMove = bestDirectFollowUpMoves.get(0);
+                Evaluation bestFUpEval = bestDirectFollowUpMove.getEval()
+                                            .devideBy(2)    // the best followUp is probably not forced
+                                            .timeWarp(+2);  // attention: may have side-effect on bestDirectFollowUpMove (which is "luckily" not used any more)
+                addEvalWithReason("threatening", bestDirectFollowUpMove, eval, bestFUpEval);
+                if (bestDirectFollowUpMoves.size() == 2 && bestDirectFollowUpMoves.get(1).getEval().isGoodForColor(color())) {
+                    // two good followup moves means, we have a fork
+                    Move secondBestDirectFollowUpMove = bestDirectFollowUpMoves.get(1);
+                    Evaluation secondBestFUpEval = secondBestDirectFollowUpMove.getEval();  // no timeWarp at is is forcing at least for the 2nd best move
+                    //todo? to assume forcing is not completely true, if moving away the first/best threatened opponent piece can save the 2nd, e.g. with a check or by covering sufficiently
+                    // - but this needs recursion, which we stopped here,, so for now let's conservatively take half the effect...
+                    secondBestFUpEval.devideBy(2);
+                    addEvalWithReason("forking", secondBestDirectFollowUpMove, eval, secondBestFUpEval);
                 }
             }
 
             // f) see what this piece can cover from here - should be calculated by the bigger recursion, however,
             // seemingly boring moves (if covering counts as 0) would then never make it into the recursion
-            Move fUpDefenceMove = getBestDefenceEvalAfterExceptReachableFromAfter(fbAfter, move2Bevaluated.from(), fb);
+            Move fUpDefenceMove = getBestDefenceEvalAfterExceptReachableFromAfter(fbAfter, move2Bevaluated.from(), fb_safecopy);
             if (fUpDefenceMove != null) {
                 Evaluation fUpDefenceEval = fUpDefenceMove.getEval();
                 if (fUpDefenceEval != null) {
@@ -303,12 +311,12 @@ public class ChessPiece {
 
             // g) see what the piece cannot capture any more
             Move[] bestMissedMove = new Move[1];
-            getPositiveDirectMovesAfter(fb)
+            getPositiveDirectMovesAfter(fb_safecopy)
                     .forEach(oldPositiveMove -> {
                         Move oldFollowUpMove = oldPositiveMove.piece().getMove(move2Bevaluated.from(), oldPositiveMove.to());
-                        if (oldFollowUpMove == null || !oldPositiveMove.piece().isCoveringTargetAfter(oldFollowUpMove, fb))
+                        if (oldFollowUpMove == null || !oldPositiveMove.piece().isCoveringTargetAfter(oldFollowUpMove, fb_safecopy))
                             return;  // pce can still do the move after this 2BevaluatedMove
-                        Evaluation missedEval = oldFollowUpMove.getSimpleMoveEvalAfter(fb);
+                        Evaluation missedEval = oldFollowUpMove.getSimpleMoveEvalAfter(fb_safecopy);
                         if (bestMissedMove[0] == null || missedEval.isBetterForColorThan(color(), bestMissedMove[0].getEval()))
                             bestMissedMove[0] = oldFollowUpMove;
                     });
@@ -319,27 +327,75 @@ public class ChessPiece {
                 Evaluation delta = new Evaluation(bestMissedMove[0].getEval())
                         .timeWarp(+2);  // the comeback
                 delta.subtractEval(bestMissedMove[0].getEval());
-                addEvalWithReason("loosing", bestDirectFollowUpMove, eval, delta);
+                addEvalWithReason("loosing", bestMissedMove[0], eval, delta);
             }
         }
 
         result.setEval(eval)
-                .addEval(fb.captureEvalSoFar(),0);
+                .addEval(fb_safecopy.captureEvalSoFar(),0);
+
+        // finally, for a good board evaluation, not just a move evaluation, check best opponents remaining counter-captures
+        List<Move> bestOppMoves = new ArrayList<>(1);
+        board.getBestPositiveCaptureMoves(opponentColor(color()), fbAfter, bestOppMoves, 1);
+        if (!bestOppMoves.isEmpty()) {
+            result.addEval(bestOppMoves.get(0).getEval());
+        }
+
         return result;
     }
 
-    private void adaptEvalForDisabledMove(String reason, Move move, Evaluation eval, VBoard fb, VBoard fbAfter) {
-        adaptEvalForMove(reason, move, eval, fb, fbAfter, false);
-    }
-    private void adaptEvalForEnabledMove(String reason, Move move, Evaluation eval, VBoard fb, VBoard fbAfter) {
-        adaptEvalForMove(reason, move, eval, fb, fbAfter, true);
+    /**
+     * Decides if it is a capture or a coverage that is blocked and subtracts the estimated benefit to eval
+     * and makes debug output resp. sets the reason in evaluation.
+     * @param reason  just for the debug output and reason set in evaluation
+     * @param move also only needed for the debug output and reason set in evaluation
+     * @param eval will be changed accordingly
+     * @param fb_unsafe the current board - - is called _unsafe, because it will
+     *                  create its own followup-boards, so it possibly breaks the move-list, if this board is not
+     *                  at the top (bottom) of the depth-search
+     * @param fbAfter - board if the move had been played
+     */
+    private void adaptEvalForDisabledMove(final String reason, final Move move, final Evaluation eval,
+                                          final VBoard fb_unsafe, final VBoard fbAfter) {
+        adaptEvalForMove(reason, move, eval, fb_unsafe, fbAfter, false);
     }
 
-    private void adaptEvalForMove(String reasonPrefix, Move move, Evaluation eval, VBoard fb, VBoard fbAfter, boolean doAdd) {
-        ChessPiece toSqPce = fbAfter.getPieceAt(move.to());
+    /**
+     * Decides if it is a capture or a coverage that is enabled(uncovered) and adds or
+     * subtracts the estimated benefit to eval and makes debug output resp. sets the reason in evaluation.
+     * @param reason  just for the debug output and reason set in evaluation
+     * @param move also only needed for the debug output and reason set in evaluation
+     * @param eval will be changed accordingly
+     * @param fb_unsafe the current board - - is called _unsafe, because it will
+     *                  create its own followup-boards, so it possibly breaks the move-list, if this board is not
+     *                  at the top (bottom) of the depth-search
+     * @param fbAfter - board if the move had been played
+     */
+    private void adaptEvalForEnabledMove(final String reason, final Move move, final Evaluation eval,
+                                         final VBoard fb_unsafe, final VBoard fbAfter) {
+        adaptEvalForMove(reason, move, eval, fb_unsafe, fbAfter, true);
+    }
+
+    /**
+     * Decides if it is a capture or a coverage that is blocked or enabled(uncovered), adds ot
+     * subtracts the estimated benefit to eval and makes debug output resp. sets the reason in evaluation.
+     * @param reasonPrefix  just for the debug output and reason set in evaluation
+     * @param move also only needed for the debug output and reason set in evaluation
+     * @param eval will be changed accordingly
+     * @param fb_unsafe the current board - - is called _unsafe, because it will
+     *      *                  create its own followup-boards, so it possibly breaks the move-list, if this board is not
+     *      *                  at the top (bottom) of the depth-search
+     * @param fbAfter - board if the move had been enabled/uncovered (not after move was made!)
+     * @param doAdd adds if true (for uncovering), subtracts otherwise (for blocking)
+     */
+    private static void adaptEvalForMove(final String reasonPrefix, final Move move, final Evaluation eval,
+                                  final VBoard fb_unsafe, final VBoard fbAfter, final boolean doAdd) {
+        ChessPiece mover = move.piece();
+        ChessPiece toSqPce = doAdd ? fbAfter.getPieceAt(move.to())
+                                   : fb_unsafe.getPieceAt(move.to());
         if (toSqPce == null)
             return;
-        if (toSqPce.color() == move.piece().color()) {
+        if (toSqPce.color() == mover.color()) {
             // a covering of move.toSq was disabled
             //Todo: calc the effectiveness of the old covering and consequences of the block
             int rawEval0 = evalForColor(EVAL_TENTH, toSqPce.color());
@@ -348,13 +404,21 @@ public class ChessPiece {
         }
         else {
             // a previously possible capture at move.toSq is disabled
-            Evaluation delta = getMoveEvalInclFollowUpAfter(move, fb);
+            Evaluation delta = mover.getMoveEvalInclFollowUpAfter(move, fb_unsafe);
             //todo: looking only at the blocked capture is not sufficient, it could have a covering-contribution,
             // but not be the first best to capture. So at least give a constant penalty for the lost covering (like above)
-            if (!delta.isGoodForColor(move.piece().color()))
+            if (!delta.isGoodForColor(mover.color()))
                 delta = new Evaluation(evalForColor(EVAL_TENTH, toSqPce.color()), 0 );  // any color covers immediately now
-            if (toSqPce.color() == color())  // opponent could have taken immediately (should +1?), but I could only have one move later
+            if (toSqPce.color() == mover.color()) { // I could only have taken one move later, but no more
                 delta.timeWarp(+2);
+            }
+            else {
+                if (!doAdd) {
+                    // I block an opponents capture - like case b) this is not bonus of this move, but a minus if not making the move
+                    return;
+                }
+                // I enable an opponents capture, this can happen now, so nothing to timewarp
+            }
             if (!doAdd)
                 delta.invert();
             addEvalWithReason(reasonPrefix + "_capture", move, eval, delta);
@@ -375,13 +439,15 @@ public class ChessPiece {
     /** returns the potential benefit of capturing with this move + checks if recapturing is reasonably possible
      *  (after some guessing, not precise!) for the opponent. If so, this is also calculated in.
      * @param move
-     * @param fb
+     * @param fb_unsafe "future board"= base position of current evaluation - is called _unsafe, because it will
+     *                  create its own followup-boards, so it possibly breaks the move-list, if this board is not
+     *                  at the top (bottom) of the depth-search
      * @return
      */
-    private Evaluation getMoveEvalInclFollowUpAfter(Move move, VBoard fb) {
-        VBoard fbNext = VBoard.createNext(fb, move);
-        Evaluation atToSqEval = move.getSimpleMoveEvalAfter(fb);
-        Evaluation oppFUpEval = getFollowUpEvalAtSqAfter(move.toSq(), fbNext);
+    Evaluation getMoveEvalInclFollowUpAfter(Move move, VBoard fb_unsafe) {
+        VBoard fbNext = VBoard.createNext(fb_unsafe, move);
+        Evaluation atToSqEval = move.getSimpleMoveEvalAfter(fb_unsafe);
+        Evaluation oppFUpEval = getLocalFollowUpEvalAtSqAfter(move.toSq(), fbNext);
         if (oppFUpEval != null && oppFUpEval.isGoodForColor(opponentColor(move.piece().color()))) {
             atToSqEval.addEval(oppFUpEval);
         }
@@ -394,33 +460,60 @@ public class ChessPiece {
      * he would probably not capture...)
      * @param toSq
      * @param fb
+     * @return benefit or null if it is not possible to capture reasonably.
+     */
+    private Evaluation getLocalFollowUpEvalAtSqAfter(final Square toSq, final VBoard fb) {
+        ChessPiece cheapestToPosAttacker = toSq.cheapestAttackersOfColorToHereAfter(opponentColor(color()), fb);
+        if (cheapestToPosAttacker == null)
+            return null;
+        Move nextCaptureMove = cheapestToPosAttacker.getDirectMoveAfter(toSq.pos(), fb);
+        if (nextCaptureMove == null)
+            return null;
+        if (DEBUGMSG_MOVEEVAL)
+            System.out.print("local-capture-sequence+" + nextCaptureMove + " ");
+        // Can the opponent capture safely? or will he also lose his piece - or something in between...
+        Evaluation captureEval = cheapestToPosAttacker.getMoveEvalInclFollowUpAfter(nextCaptureMove, fb);
+        if (captureEval != null && captureEval.isGoodForColor(opponentColor(color()))) {
+            return captureEval;
+        }
+        if (DEBUGMSG_MOVEEVAL)
+            System.out.println("Capturing back at "+ toSq +" does not seem possible for " + cheapestToPosAttacker);
+        return null;
+    }
+
+    /** returns the (approximated) benefit to capture the piece on this square.
+     *  if this is not beneficial, it still returns the evaluation (which is negative for the opponent, so
+     * he would probably not capture...)
+     * @param toSq where the local clash is carried out
+     * @param fb "future board" = the current state of the board
      * @return benefit or price to pay to capture, null if it is not possible to capture, or there is no piece to capture.
      */
-    private Evaluation getFollowUpEvalAtSqAfter(Square toSq, VBoard fb) {
+    @Deprecated
+    private Evaluation getSimpleEstimatedFollowUpEvalAtSqAfter(final Square toSq, final VBoard fb) {
         ChessPiece cheapestToPosAttacker = toSq.cheapestAttackersOfColorToHereAfter(opponentColor(color()), fb);
         if (cheapestToPosAttacker == null)
             return null;
         Move enabledCaptureMove = cheapestToPosAttacker.getDirectMoveAfter(toSq.pos(), fb);
         if (enabledCaptureMove == null)
             return null;
-        ChessPiece attackedPce = fb.getPieceAt(toSq.pos());
-        if (attackedPce == null)
-            return null;
+//        ChessPiece attackedPce = fb.getPieceAt(toSq.pos());
+//        if (attackedPce == null)
+//            return null;
         if (DEBUGMSG_MOVEEVAL)
             System.out.print("enabling@to: " + enabledCaptureMove + " ");
         Evaluation captureEval = enabledCaptureMove.getSimpleMoveEvalAfter(fb);
         // as we do not go deeper here, we can actually not know the correct evaluation.
         // Can the opponent capture safely? or will he also lose his piece - or something in between...
-        ChessPiece cheapestToPosDefender = toSq.cheapestDefenderHereForPieceAfter(attackedPce, fb);
+        ChessPiece cheapestToPosDefender = toSq.cheapestDefenderHereForPieceAfter(this, fb);
         if (cheapestToPosDefender != null) {
             // it is defended at least by one, so opponent will probably be lost, too
             int oppValue = enabledCaptureMove.piece().getValue();
-            captureEval.addEval(-(oppValue - (oppValue >> 2)), 0);  // take 3/4 of opponent
+            captureEval.addEval(-(oppValue - (oppValue >> 2)), 0);  // take 3/4 of opponent - but note, this favours captures!
             ChessPiece cheapestOppDefender = toSq.cheapestDefenderHereForPieceAfter(enabledCaptureMove.piece(), fb);  //restriction: does not generate next fb (fb+enabledCaptureMove) - but if we go too far, we could almost also start a deep simulation here ... :-)
             if (cheapestOppDefender != null)
                 captureEval.addEval(-cheapestToPosDefender.getValue() >> 1, 1);
         }
-        if (captureEval.isGoodForColor(enabledCaptureMove.piece().color())) {
+        if (captureEval.isGoodForColor(opponentColor(color()))) {
             return captureEval;
         }
         if (DEBUGMSG_MOVEEVAL)
@@ -433,40 +526,51 @@ public class ChessPiece {
         //Todo? could even go 1 step further with a "bestOld2ndFollowUpMove" in fl=2, but this first needs cached results there at the piece for fb
     }
 
-    private Move getBestEvaluatedDirectFollowUpMoveAfterExceptReachableFromAfter(VBoard fb, int oldFromPos, VBoard preBoard) {
-        Move bestFollowUpMove = null;
-        for (Move move : legalMovesAfter(fb) ) {
-            if (!fb.hasPieceOfColorAt(opponentColor(color()),move.to()))
+    /** gets the 2 best follop moves that have not already been reachable from oldFromPos
+     * @param fb_unsafe the board as it is now - is called _unsafe, because it will
+     *                  create its own followup-boards, so it possibly breaks the move-list, if this board is not
+     *                  at the top (bottom) of the depth-search
+     * @param oldFromPos where this piece was before
+     * @param preBoard the board before, matching oldPos
+     * @return List of max 2 moves
+     */
+    private List<Move> getBestEvaluatedDirectFollowUpMovesAfterExceptReachableFromAfter(
+            final VBoard fb_unsafe,
+            final int oldFromPos,
+            final VBoard preBoard) {
+        List<Move> bestFollowUpMoves = new ArrayList<>();
+        List<Move> rest = new ArrayList<>();
+        for (Move move : legalMovesAfter(fb_unsafe) ) {
+            if (!fb_unsafe.hasPieceOfColorAt(opponentColor(color()),move.to()))
                 continue;  // there is no own piece, so I'd capture nothing...  // todo: consider checking moves + follow ups in the future
             Move prevMove2mTo = getMove(oldFromPos, move.to());
             if (prevMove2mTo != null && isCoveringTargetAfter(prevMove2mTo, preBoard))
                 continue;
-            Evaluation eval = getMoveEvalInclFollowUpAfter(move, fb);
+            Evaluation eval = getMoveEvalInclFollowUpAfter(move, fb_unsafe);
             if (eval != null) {
-                if (bestFollowUpMove == null || eval.isBetterForColorThan(color(), bestFollowUpMove.getEval())) {
-                    bestFollowUpMove = new Move(move).setEval(eval);
-                }
+                move = new Move(move).setEval(eval);
+                addMoveToSortedListOfCol(move, bestFollowUpMoves, color(), 2, rest);
             }
         }
-        return bestFollowUpMove;
+        return bestFollowUpMoves;
     }
 
-    private Move getBestDefenceEvalAfterExceptReachableFromAfter(VBoard fb, int oldFromPos, VBoard preBoard) {
+    private Move getBestDefenceEvalAfterExceptReachableFromAfter(VBoard fb_unsafe, int oldFromPos, VBoard preBoard_unsafe) {
         Evaluation bestDefenceEval = null;
         Move bestDefenceMove = null;
-        int origPcePos = preBoard.getPiecePos(this);
-        for (Move move : coveringMovesAfter(fb) ) {
+        int origPcePos = preBoard_unsafe.getPiecePos(this);
+        for (Move move : coveringMovesAfter(fb_unsafe) ) {
             if (move.to() == origPcePos)
                 continue;; // I was not covering myself before the move and I will not do so after the move...
-            if (!fb.hasPieceOfColorAt(color(),move.to()))
+            if (!fb_unsafe.hasPieceOfColorAt(color(),move.to()))
                 continue;  // there is no own piece, so I'd cover nothing...
             Move prevMove2mTo = getMove(oldFromPos, move.to());
-            if (prevMove2mTo != null && isCoveringTargetAfter(prevMove2mTo, preBoard))
+            if (prevMove2mTo != null && isCoveringTargetAfter(prevMove2mTo, preBoard_unsafe))
                 continue;
-            Evaluation evalBefore = getFollowUpEvalAtSqAfter(move.toSq(), preBoard);
+            Evaluation evalBefore = getLocalFollowUpEvalAtSqAfter(move.toSq(), preBoard_unsafe);
             if (evalBefore == null)
                 continue;  // no capturing possible, even without me...
-            Evaluation evalAfter = getFollowUpEvalAtSqAfter(move.toSq(), fb);
+            Evaluation evalAfter = getLocalFollowUpEvalAtSqAfter(move.toSq(), fb_unsafe);
             if (evalAfter == null)
                 evalAfter = new Evaluation();
             Evaluation evalDelta = evalAfter.subtractEval(evalBefore);

@@ -24,7 +24,6 @@ package de.ensel.waves;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvFileSource;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.Arrays;
@@ -38,17 +37,19 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class ChessBoardTest {
     //public static ChessEngineParams testEngParams = new ChessEngineParams(LEVEL_TEST_MID);
-    static final int DEFAULT_TEST_ENGINE_LEVEL = LEVEL_TEST_MID; // LEVEL_TEST_QUICK-1; // LEVEL_TEST_MID;
+    static final int DEFAULT_TEST_ENGINE_LEVEL = LEVEL_TEST_MED; // LEVEL_TEST_QUICK-1; // LEVEL_TEST_MED;
 
     // temporary/debug tests: choose the one best move
     @Disabled
     @ParameterizedTest
     @CsvSource({
         //  "3qkbnr/p1pp1ppp/b3p3/2P5/1r1P4/4P3/P2B1PPP/RN2K1NR b KQk - 1 9, a1a1" // bug: ignore Q taking and checking on f7?
-        "8/5k2/2R3r1/3K4/8/8/6R1/8 b - - 0 1, g6g2"
+        //"8/5k2/2R3r1/3K4/8/8/6R1/8 b - - 0 1, g6g2"
+        //Ok: "6k1/p4pbp/5n2/2pnp1N1/6P1/1rN2P2/7P/B2K3R w - - 0 37, g5e4|d1d2"
+        "6k1/p6p/8/5p1P/4p3/4P1P1/2R5/1r2K3 w - - 1 50, e1e2|e1f2"      // not c2c1...
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
-        doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
+        doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true, true);
     }
 
     @ParameterizedTest
@@ -201,7 +202,7 @@ public class ChessBoardTest {
             , "r1b1k2r/ppppnppp/2N2q2/2b5/4P3/2P1B3/PP3PPP/RN1QKB1R b KQkq - 0 7, c5f3|f6c6"  // from gamesC#1 2-fold-clash with only one solution
     })
     void ChessBoardGetBestMove_isBestMoveTest(String fen, String expectedBestMove) {
-        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", false);
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", false, false);
     }
 
     // choose the one best move in very simple scenarios
@@ -216,7 +217,7 @@ public class ChessBoardTest {
         ,"5k2/8/3r2q1/8/1R6/P7/1P2r1R1/KN6 w - - 0 1, g2e2"      // take q and lose R? better take r (+#)
     })
     void ChessBoardGetBestMove_Basics_Test(String fen, String expectedBestMove) {
-        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true, false);
     }
 
     // choose the one best move in simple scenarios, but with many pieces
@@ -228,14 +229,17 @@ public class ChessBoardTest {
         ,"1rbqkbnr/p1pppppp/p7/8/3P4/4P3/PPPB1PPP/RN1QK1NR b KQk - 1 4, b8b2"         // take free pawn
     })
     void ChessBoardGetBestMove_moreComplex_Test(String fen, String expectedBestMove) {
-        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true, false);
     }
 
 
-    public static void doAndTestPuzzle(String fen, String expectedMoves, String themes, boolean debugmoves) {
+    public static void doAndTestPuzzle(String fen, String expectedMoves, String themes, boolean debugmoves, boolean intenseDebugging) {
         //ChessBoard.DEBUGMSG_MOVEEVAL = debugmoves;
         ChessBoard.DEBUGMSG_MOVESELECTION = debugmoves;
+        if (intenseDebugging)
+            ChessBoard.DEBUGMSG_MOVESELECTION2 = true;
         ChessBoard board = new ChessBoard(themes, fen, new ChessEngineParams(DEFAULT_TEST_ENGINE_LEVEL));
+        ChessBoard.setEngineP1(DEFAULT_TEST_ENGINE_LEVEL);
         String[] splitt = expectedMoves.trim().split(" ", 2);
         if (splitt.length==2 && splitt[1]!=null && splitt[1].length()>0) {
             // if expected moves is a series of moves, then the very first is still before the puzzle and must be moved first...
@@ -249,6 +253,7 @@ public class ChessBoardTest {
         Move bestMove = board.getBestMove();
         ChessBoard.DEBUGMSG_MOVEEVAL = false;
         ChessBoard.DEBUGMSG_MOVESELECTION = false;
+        ChessBoard.DEBUGMSG_MOVESELECTION2 = false;
 
         if (bestMove==null) {
             System.out.println("--> Failed on board " + board.getBoardName() + ": " + board.getBoardFEN() + ": No move?");
