@@ -1376,35 +1376,6 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
         return result;
     }
 
-    /**
-     * p is not king-pinned or it is pinned but does not move out of the way.
-     */
-    public boolean moveIsNotBlockedByKingPin(ChessPiece p, int topos){
-        if (isKing(p.pieceType()))
-            return true;
-        int sameColorKingPos = p.isWhite() ? whiteKingPos : blackKingPos;
-        if (sameColorKingPos < 0)
-            return true;  // king does not exist... should not happen, but is part of some test-positions
-        if (!isPiecePinnedToPos(p, sameColorKingPos))
-            return true;   // p is not king-pinned
-        if (colorlessPieceType(p.pieceType()) == KNIGHT)
-            return false;  // a king-pinned knight can never move away in a way that it still avoids the check
-        // or it is pinned, but does not move out of the way.
-        int king2PceDir = calcDirFromTo(sameColorKingPos, topos);
-        int king2TargetDir = calcDirFromTo(sameColorKingPos, p.pos());
-        return king2PceDir == king2TargetDir;
-        // TODO?:  could also be solved by more intelligent condition stored in the distance to the king
-    }
-
-
-    public boolean isPiecePinnedToPos(ChessPiece p,int pos){
-        int pPos = p.pos();
-        List<Integer> listOfSquarePositionsCoveringPos = null; // TODO: boardSquares[pos].getPositionsOfPiecesThatBlockWayAndAreOfColor(p.color());
-        for (Integer covpos : listOfSquarePositionsCoveringPos)
-            if (covpos == pPos)
-                return true;
-        return false;
-    }
 
     public boolean posIsBlockingCheck(int kingColor, int pos){
         return boardSquares[pos].blocksCheckFor(kingColor);

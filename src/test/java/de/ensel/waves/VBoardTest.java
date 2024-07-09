@@ -106,4 +106,25 @@ class VBoardTest {
         assertEquals(true, vBoard3.hasPieceOfColorAt(p1.color(), p3Pos));
         assertEquals(false, vBoard3.hasPieceOfColorAt( opponentColor(p1.color()), p3Pos));
     }
+
+    @Test
+    void moveIsNotBlockedByKingPin_Test() {
+        DEBUGMSG_MOVEEVAL = true;
+        ChessBoard board = new ChessBoard("5k2/8/4Rrq1/8/5R2/P7/1P6/KN6 b - - 4 3");
+        ChessPiece pinnedRook = board.getPieceAt(coordinateString2Pos("f6"));
+        List<Move> res1 = pinnedRook.legalMovesAfter(board);
+        assertEquals( "[f6f5, f6f4, f6f7]", Arrays.toString(res1.toArray()) );
+
+        ChessBoard board2 = new ChessBoard("5k2/8/3r2q1/8/1R6/P7/1P2r1R1/KN6 w - - 0 1");
+        VBoard vBoard2 = board2
+                .createNext("g2e2")
+                .createNext("d6e6")
+                .createNext("b4f4")
+                .createNext("e6f6")
+                .createNext("e2e6");
+        ChessPiece pinnedRook2 = vBoard2.getPieceAt(coordinateString2Pos("f6"));
+        List<Move> res2 = pinnedRook2.legalMovesAfter(vBoard2);
+        assertEquals( "[f6f5, f6f4, f6f7]", Arrays.toString(res2.toArray()) );
+
+    }
 }

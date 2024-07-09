@@ -310,7 +310,7 @@ public class Move extends SimpleMove implements Comparable<Move> {
         if ( pos == NOWHERE )  //was: fb.isCaptured(piece())
             return false;
         return pos == from()   // piece is still here
-                && !isBlockedByKingPin(fb)
+                && fb.moveIsNotBlockedByKingPin(piece(), to())
                 && myPiece.isADirectMoveAfter(this, fb);
     }
 
@@ -319,13 +319,8 @@ public class Move extends SimpleMove implements Comparable<Move> {
         if ( pos == NOWHERE )  //was: fb.isCaptured(piece())
             return false;
         return pos == from()  // piece is still here
-                && !isBlockedByKingPin(fb)
+                && fb.moveIsNotBlockedByKingPin(piece(), to())
                 && myPiece.isCoveringTargetAfter(this, fb);
-    }
-
-    private boolean isBlockedByKingPin(final VBoard bc) {
-        //TODO
-        return false;
     }
 
     public Evaluation getSimpleMoveEval() {

@@ -648,6 +648,9 @@ public class ChessPiece {
                 // loop along the direction d until we hit something
                 while (plusDirIsStillLegal(pos, d)) {
                     pos += d;
+                    // needs check if it is really a legal move - however isALegalMoveAfter() checks way too much things we already know, only the kin-pin-check is missing:
+                    if (!fb.moveIsNotBlockedByKingPin(this, pos))
+                        break;  // if one step would already uncover a check, all further steps in that direction are also not needed to be checked
                     if (!fb.isSquareEmpty(pos)) {
                         if (includeCovering || fb.hasPieceOfColorAt(opponentColor(color()), pos))
                             moves.add(getMove(fromPos, pos));

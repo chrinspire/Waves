@@ -208,11 +208,7 @@ public class VBoard implements VBoardInterface {
 
     @Override
     public boolean hasLegalMoves(int color) {
-        for (Iterator<ChessPiece> it = getPieces(color).iterator(); it.hasNext(); ) {
-            if ( it.next().legalMovesStreamAfter(this).findAny().orElse(null) != null )
-                return true;
-        }
-        return false;
+        return getLegalMovesStream(color).findAny().orElse(null) != null;
     }
 
 //    @Override
@@ -274,6 +270,59 @@ public class VBoard implements VBoardInterface {
             return state != DRAW;
         }
         return false;
+    }
+
+    /**
+     * p is not king-pinned or it is pinned but does not move out of the way.
+     */
+    public boolean moveIsNotBlockedByKingPin(ChessPiece p, int topos){
+        if (isKing(p.pieceType()))
+            return true;
+        int sameColorKingPos = kingPos(p.color());
+        if (sameColorKingPos < 0)
+            return true;  // king does not exist... should not happen, but is part of some test-positions
+        if (getPinnerOfPceToPos(p, sameColorKingPos) == null)
+            return true;   // p is not king-pinned
+        if (colorlessPieceType(p.pieceType()) == KNIGHT)
+            return false;  // a king-pinned knight can never move away in a way that it still avoids the check
+        // or it is pinned, but does not move out of the way.
+        int king2PceDir = calcDirFromTo(sameColorKingPos, topos);
+        int king2TargetDir = calcDirFromTo(sameColorKingPos, getPiecePos(p));
+        return king2PceDir == king2TargetDir;
+        // TODO?:  could also be solved by more intelligent condition stored in the distance to the king
+    }
+
+    public ChessPiece getPinnerOfPceToPos(ChessPiece pinnedPce, int targetPos) {
+        int pPos = getPiecePos(pinnedPce);
+        ChessPiece pinner = null;
+        // manually run along the board (going over generic moves2here would be to slow I think
+        int d = calcDirFromTo(targetPos, pPos);
+        if (d == NONE)
+            return null;  // pin not possible in strange directions...
+
+        int pos = targetPos;
+        // loop along the direction d until we hit something the pinnedPce - and then the searched for pinner
+        while (plusDirIsStillLegal(pos, d)) {
+            pos += d;
+            if (!isSquareEmpty(pos)) {
+                if (getPieceAt(pos) != pinnedPce)
+                    return null;    // there seems to be some other piece in between, so pinnedPce is not the real pinnedPce (at least there are more, which does not count here)
+                break;
+            }
+        }
+        if (!plusDirIsStillLegal(pos, d))
+            return null;            // pinnedPce was not found or there is no more room for a pinner behind it
+        while (plusDirIsStillLegal(pos, d)) {
+            pos += d;
+            if (!isSquareEmpty(pos)) {
+                pinner = getPieceAt(pos);
+                if (!isSlidingPieceType(pinner.pieceType())
+                        || !isCorrectSlidingPieceDirFromTo(pinner.pieceType(), pos, targetPos))
+                    return null;    // pinner is not a piece that could pin here...
+                break;   // found!
+            }
+        }
+        return pinner;
     }
 
     @Override
