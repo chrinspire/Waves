@@ -51,14 +51,32 @@ public class Evaluation {
 
     ////
     boolean isGoodForColor(int color) {
-        return isBetterForColorThan(color, new Evaluation().setEval(-1,0));
+        for (int i = 0; i < MAX_EVALDEPTH; i++) {
+            if (isWhite(color) ? rawEval[i] < 0 : rawEval[i] > 0)
+                return false;
+        }
+        return true;
     }
 
     boolean isAboutZero() {
-        return abs(rawEval[0])<=2 && abs(rawEval[1])<=4 && abs(rawEval[2])<=6;
+        return abs(rawEval[0])<=1 && abs(rawEval[1])<=2 && abs(rawEval[2])<=3;
     }
 
     boolean isBetterForColorThan(int color, Evaluation oEval) {
+        int delta = 0;
+        int insignificance = 1;
+        for (int i = 0; i < MAX_EVALDEPTH; i++) {
+            int iDelta = (rawEval[i] - oEval.rawEval[i]) / insignificance;
+            insignificance += 1+i + abs(delta/EVAL_HALFAPAWN);
+            delta += iDelta;
+            if (abs(delta) >= EVAL_HALFAPAWN + (EVAL_HALFAPAWN>>1))
+                break;
+        }
+        return evalIsOkForColByMin(delta, color, 0);
+    }
+
+    @Deprecated
+    boolean old_isBetterForColorThan(int color, Evaluation oEval) {
         if (oEval == null)
             return true;  // anything is better than no move :-)
         int i = 0;
@@ -262,6 +280,7 @@ public class Evaluation {
             case 2 -> 1;
             case 4 -> 2;
             case 8 -> 3;
+            case 16 -> 4;
             default -> 0;
         };
         for (int i = 0; i < MAX_EVALDEPTH; i++) {
