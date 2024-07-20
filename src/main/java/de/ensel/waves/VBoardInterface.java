@@ -18,9 +18,11 @@
 
 package de.ensel.waves;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 import static de.ensel.chessbasics.ChessBasics.chessBasicRes;
+import static de.ensel.chessbasics.ChessBasics.opponentColor;
 
 /**
  * VBoard virtually represents a ChessBoard. Like a Chessboard, it provides methods to 
@@ -36,9 +38,12 @@ public interface VBoardInterface {
 
     //// game & board
     GameState   gameState       ();
-    boolean     isCheck         (int color);
+    boolean     isCheck         ();
+    List<Move> getCheckingMoves(int color);
+    void addCheckingMove(Move m);
+
     int         getTurnCol      ();
-    boolean     hasLegalMoves    (int color);
+    boolean     hasLegalMoves   (int color);
     int         getNrOfRepetitions();
     int         captureEvalSoFar();
 

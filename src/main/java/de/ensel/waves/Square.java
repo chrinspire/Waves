@@ -107,7 +107,7 @@ public class Square {
     }
 
     public String toStringWithPce() {
-        return squareName(myPos) + (isEmpty() ? "" : "(" + fenCharFromPceType(myPieceID()) + ")");
+        return squareName(myPos) + (isEmpty() ? "" : "(" + fenCharFromPceType(board.getPieceTypeAt(myPos)) + ")");
     }
 
 
@@ -131,14 +131,13 @@ public class Square {
                 .orElse(null);
     }
 
-    ChessPiece cheapestAttackersOfColorToHereAfter(int color, VBoard fb) {
-        return getMovesToHere(color)
-                .filter(move -> move.isALegalMoveAfter(fb))
-                .map(Move::piece)
-                .min(Comparator.comparingInt(p -> abs(p.getValue())))
-                .orElse(null);
-    }
-
+//    ChessPiece cheapestAttackersOfColorToHereAfter(int color, VBoard fb) {
+//        return getMovesToHere(color)
+//                .filter(move -> move.isALegalMoveAfter(fb))
+//                .map(Move::piece)
+//                .min(Comparator.comparingInt(p -> abs(p.getValue())))
+//                .orElse(null);
+//    }
 
     //// getter
 
@@ -201,8 +200,8 @@ public class Square {
     }
 
     public void removePiece(int pceID) {
-        myPieceID = NO_PIECE_ID;
-        ; // TODO
+        if (myPieceID == pceID)
+            myPieceID = NO_PIECE_ID;
     }
 
     void emptySquare() {
@@ -242,7 +241,7 @@ public class Square {
      */
     public Stream<Move> getSingleMovesToHere(final int color, final VBoard fb) {
         return depMovesEnd[color].stream()
-                .filter(move -> move.from() == fb.getPiecePos(move.piece()));
+                .filter(move -> move.isALegalMoveAfter(fb));   // not needed, is part of isALegal...: move -> move.from() == fb.getPiecePos(move.piece())
     }
 
     //    /**

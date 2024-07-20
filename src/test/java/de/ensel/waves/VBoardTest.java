@@ -48,6 +48,7 @@ class VBoardTest {
         board.spawnPieceAt(opponentBishopPceType, p2Pos);
         int sameColorKnightPceType = (isPieceTypeWhite(QUEEN_BLACK) ? KNIGHT : KNIGHT_BLACK);
         board.spawnPieceAt(sameColorKnightPceType, p3Pos);
+        board.completePreparation();
         ChessPiece p1 = board.getPieceAt(p1Pos);
         ChessPiece p2 = board.getPieceAt(p2Pos);
         ChessPiece p3 = board.getPieceAt(p3Pos);
@@ -85,6 +86,7 @@ class VBoardTest {
         board.spawnPieceAt(opponentBishopPceType, p2Pos);
         int sameColorKnightPceType = (isPieceTypeWhite(QUEEN_BLACK) ? KNIGHT : KNIGHT_BLACK);
         board.spawnPieceAt(sameColorKnightPceType, p3Pos);
+        board.completePreparation();
         ChessPiece p1 = board.getPieceAt(p1Pos);
         ChessPiece p2 = board.getPieceAt(p2Pos);
         ChessPiece p3 = board.getPieceAt(p3Pos);
@@ -112,8 +114,8 @@ class VBoardTest {
         DEBUGMSG_MOVEEVAL = true;
         ChessBoard board = new ChessBoard("5k2/8/4Rrq1/8/5R2/P7/1P6/KN6 b - - 4 3");
         ChessPiece pinnedRook = board.getPieceAt(coordinateString2Pos("f6"));
-        List<Move> res1 = pinnedRook.legalMovesAfter(board);
-        assertEquals( "[f6f5, f6f4, f6f7]", Arrays.toString(res1.toArray()) );
+        String res1 = Arrays.toString(board.getSingleMovesStreamFromPce(pinnedRook).toArray());
+        assertEquals( "[f6f5, f6f4, f6f7]", res1 );
 
         ChessBoard board2 = new ChessBoard("5k2/8/3r2q1/8/1R6/P7/1P2r1R1/KN6 w - - 0 1");
         VBoard vBoard2 = board2
@@ -123,8 +125,50 @@ class VBoardTest {
                 .createNext("e6f6")
                 .createNext("e2e6");
         ChessPiece pinnedRook2 = vBoard2.getPieceAt(coordinateString2Pos("f6"));
-        List<Move> res2 = pinnedRook2.legalMovesAfter(vBoard2);
-        assertEquals( "[f6f5, f6f4, f6f7]", Arrays.toString(res2.toArray()) );
+        String res2 = Arrays.toString(vBoard2.getSingleMovesStreamFromPce(pinnedRook2).toArray());
+        assertEquals( "[f6f5, f6f4, f6f7]", res2 );
 
     }
+
+    @Test
+    void isCheck_atBaseBoard_Test() {
+        ChessBoard board = new ChessBoard("5rnr/p1p2kpp/p4pb1/2NPN3/P2P4/1P2R3/5PPP/R5K1 b - - 5 25"); // check and only last possible move
+        assertTrue(board.isCheck());
+    }
+
+    @Test
+    void getCheckingMoves_atBaseBoard_Test() {
+        ChessBoard board = new ChessBoard("5rnr/p1p2kpp/p4pb1/2NPN3/P2P4/1P2R3/5PPP/R5K1 b - - 5 25"); // check and only last possible move
+        assertEquals("[e5f7]", Arrays.toString(board.getCheckingMoves(CIWHITE).toArray()));
+        assertEquals("[]", Arrays.toString(board.getCheckingMoves(CIBLACK).toArray()));
+    }
+
+    @Test
+    void isCheck_atVBoard_Test() {
+        ChessBoard board = new ChessBoard("5rnr/p1p2kpp/p4pb1/2NPp3/P2P4/1P2RN2/5PPP/R5K1 w - - 5 25");
+        VBoard vBoard = board.createNext("f3e5");// check and only last possible move
+        assertTrue(vBoard.isCheck());
+    }
+
+    @Test
+    void getCheckingMoves_atVBoard_Test() {
+        ChessBoard board = new ChessBoard("5rnr/p1p2kpp/p4pb1/2NPp3/P2P4/1P2RN2/5PPP/R5K1 w - - 5 25");
+        VBoard vBoard = board.createNext("f3e5");// check and only last possible move
+        assertEquals("[e5f7]", Arrays.toString(vBoard.getCheckingMoves(CIWHITE).toArray()));
+        assertEquals("[]", Arrays.toString(vBoard.getCheckingMoves(CIBLACK).toArray()));
+    }
+
+    @Test
+    void hasLegalMoves_Test() {
+        ChessBoard board = new ChessBoard("r2k3r/p1pp1ppp/8/8/3P4/N1P2b2/PP2qP1P/R3K3 w Q - 0 18");
+        assertFalse(board.hasLegalMoves(CIWHITE));
+    }
+
+    @Test
+    void hasLegalMoves_VBoard_Test() {
+        ChessBoard board = new ChessBoard("r2k3r/p1pp1ppp/q7/8/3P4/N1P2b2/PP2NP1P/R3K3 b Q - 0 17");
+        VBoard vBoard = board.createNext("a6e2");// check and only last possible move
+        assertFalse(vBoard.hasLegalMoves(CIWHITE));
+    }
+
 }

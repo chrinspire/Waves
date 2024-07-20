@@ -309,7 +309,7 @@ class ChessPieceTest {
         VBoard fb1 = board.createNext(p2.getDirectMoveAfter(p2ToPos, board));
         VBoard fb2 = fb1.createNext(p1.getDirectMoveAfter(p1ToPos, fb1));
         StringBuilder result = new StringBuilder();
-        p2.legalMovesStreamAfter(fb2)
+        fb2.getSingleMovesStreamFromPce(p2)
                 .sorted(Comparator.comparingInt(Move::hashId))
                 .forEach(m -> {
             result.append(" ");
@@ -344,7 +344,7 @@ class ChessPieceTest {
         VBoard fb3 = fb2.createNext(p2.getDirectMoveAfter(p2ToPos2, fb2));
         VBoard fb4 = fb3.createNext(p1.getDirectMoveAfter(p1ToPos2, fb3));
         StringBuilder result2 = new StringBuilder();
-        p2.legalMovesStreamAfter(fb4)
+        fb4.getSingleMovesStreamFromPce(p2)
                 .sorted(Comparator.comparingInt(Move::hashId))
                 .forEach(m -> {
                     result2.append(" ");

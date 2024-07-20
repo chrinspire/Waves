@@ -27,10 +27,13 @@ import static de.ensel.chessbasics.ChessBasics.*;
  *  which ones can block or delay this move and the other way round, which ones are enabled or blocked/delayed.
  */
 public class Move extends SimpleMove implements Comparable<Move> {
-    private boolean isCheckGiving = false;
+    final private ChessPiece myPiece;
+    final private Square fromSq;
+    final private Square toSq;
 
     final private Square[] intermedSqs;
-    private Evaluation eval = new Evaluation();
+    private Evaluation eval;
+    private VBoard postVBoard;
 
 
     //// Constructors
@@ -41,6 +44,7 @@ public class Move extends SimpleMove implements Comparable<Move> {
         this.fromSq = fromSq;
         this.toSq = toSq;
         this.intermedSqs = intermedSqs;
+        this.eval = new Evaluation();
     }
 
     public Move(ChessPiece myPiece, Square fromSq, Square toSq, int promotesToPceType, Square[] intermedSqs) {
@@ -49,6 +53,7 @@ public class Move extends SimpleMove implements Comparable<Move> {
         this.fromSq = fromSq;
         this.toSq = toSq;
         this.intermedSqs = intermedSqs;
+        this.eval = new Evaluation();
     }
 
     public Move(Move origin) {
@@ -56,8 +61,7 @@ public class Move extends SimpleMove implements Comparable<Move> {
         this.myPiece = origin.myPiece;
         this.fromSq = origin.fromSq;
         this.toSq = origin.toSq;
-        this.isCheckGiving = origin.isCheckGiving;
-        this.eval = origin.eval;
+        this.eval = new Evaluation(origin.eval);
         this.intermedSqs = origin.intermedSqs;
     }
 
@@ -66,9 +70,9 @@ public class Move extends SimpleMove implements Comparable<Move> {
         this.myPiece = board.getPieceAt(from());
         this.fromSq = board.baseBoard.getSquare(from());
         this.toSq = board.baseBoard.getSquare(to());
+        this.eval = new Evaluation();
 
         // todo! too lacy now, as this is only used in test cases
-        this.isCheckGiving = false;
         this.intermedSqs = null;
     }
 
@@ -264,10 +268,6 @@ public class Move extends SimpleMove implements Comparable<Move> {
 
     //// getter
 
-    public boolean isChecking() {
-        return isCheckGiving;
-    }
-
     public Evaluation getEval() {
         return eval;
     }
@@ -291,10 +291,6 @@ public class Move extends SimpleMove implements Comparable<Move> {
 
     //// setter
 
-    public void setisChecking() {
-        isCheckGiving = true;
-    }
-
     public Move setEval(final Evaluation eval) {
         this.eval = eval;
         return this;
@@ -309,8 +305,8 @@ public class Move extends SimpleMove implements Comparable<Move> {
         if ( pos == NOWHERE )  //was: fb.isCaptured(piece())
             return false;
         return pos == from()   // piece is still here
-                && myPiece.isADirectMoveAfter(this, fb);
                 && !fb.moveIsBlockedByKingPin(piece(), to())
+                && myPiece.isALegalMoveAfter(this, fb);
     }
 
     public boolean isCoveringAfter(final VBoard fb) {
@@ -323,7 +319,7 @@ public class Move extends SimpleMove implements Comparable<Move> {
     }
 
     public Evaluation getSimpleMoveEval() {
-        if (!piece().board().hasPieceOfColorAt(opponentColor(piece().color()), to()) || !myPiece.isADirectMoveAfter(this, piece().board()))
+        if (!piece().board().hasPieceOfColorAt(opponentColor(piece().color()), to()) || !myPiece.isALegalMoveAfter(this, piece().board()))
             return new Evaluation();
         return new Evaluation(-piece().board().getPieceAt(to()).getValue(), 0);
     }
@@ -351,5 +347,18 @@ public class Move extends SimpleMove implements Comparable<Move> {
         return isCheckmateEvalFor(getEval().getEvalAt(0), opponentColor(piece().color()));
     }
 
+    public boolean blocksCheckAfter(VBoard fb) {
+        int checkerColor = opponentColor(piece().color());
+        assert fb.getCheckingMoves(checkerColor).size() == 1;
+        return isBetweenFromAndTo(to(), fb.kingPos(piece().color()), fb.getCheckingMoves(checkerColor).get(0).from());
+    }
+
+    public void setPostVBoard(VBoard postVBoard) {
+        this.postVBoard = postVBoard;
+    }
+
+    public VBoard getPostVBoard() {
+        return postVBoard;
+    }
 }
 

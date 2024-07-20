@@ -23,6 +23,7 @@
 package de.ensel.waves;
 
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -47,8 +48,13 @@ public class ChessBoardTest {
         //"r1b1k2r/p2n1pp1/2p4p/1P2p3/1b5q/1P1PP2P/2PnPKPR/R2Q1B2 w kq - 0 14, g2g3|f2g1" // only two moves left
         //, "r1b1kb1r/ppp1pppp/n2pq2n/1P6/2PP3N/P1N3P1/3B1PBP/R2Q1RK1 b kq - 0 13, a6b8"  // bug at level 5: NOT a1b8
        // "rnbqkb1r/1p1p1ppp/p4p2/2pN4/2PP4/8/PP1BQPPP/R3KBNR b KQkq - 5 9, f8e7"
-    "1rbk1b1r/1ppR1Q1p/4n3/p3NNP1/2P5/P3P2P/1q3P2/4K1R1 b - - 0 30, a1a1"
-            , "5rnr/p1p2kpp/p4pb1/2NPN3/P2P4/1P2R3/5PPP/R5K1 b - - 5 25, f6e5" // last possible move
+//    "1rbk1b1r/1ppR1Q1p/4n3/p3NNP1/2P5/P3P2P/1q3P2/4K1R1 b - - 0 30, a1a1"
+//            , "5rnr/p1p2kpp/p4pb1/2NPN3/P2P4/1P2R3/5PPP/R5K1 b - - 5 25, f6e5" // last possible move
+        //"r2k3r/p1ppBppp/p7/8/1q1P4/2NQ4/PPP1NP1P/R3K2b b Q - 0 13, a1a1"
+        //ok: "r3k1nr/pqp2pp1/2nb3p/3ppbN1/8/2P4P/1P1PPPP1/RNBQKB1R w KQkq - 0 10, g5f3"  // safe N
+        // hmm, could choose better move... "1r4k1/rbpq1p1p/6p1/2R5/7b/B2PQ2P/1NP1K1P1/1N3B1R w - - 5 29, b2c4|e2d2"
+        //ok: "3qkb1r/2p1p1p1/1pn1p2p/3p4/8/2P5/1PPBPPPP/r2QKB1R w Kk - 0 12, s1a1"  // simply take rook!
+        "5b1r/prpqpkpp/p2pNpb1/3P4/4P1P1/PPN1B3/2P4P/R2Q1RK1 b - - 2 17, a1a1"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true, true);
@@ -124,19 +130,10 @@ public class ChessBoardTest {
         board.completePreparation();
 
         // act
-        Stream<Move> bestMoveForCol = board.getBestMovesForColAfter(CIWHITE, engParams);
+        Move bestMoveForCol = board.getBestMovesForColAfter(CIWHITE, engParams);
 
         // assert
-        StringBuilder result = new StringBuilder();
-        bestMoveForCol
-                //.sorted(Comparator.comparingInt(Move::hashId))
-                .forEach(m -> {
-                    result.append(" ");
-                    if (DEBUGMSG_MOVEEVAL)
-                        result.append("\n");
-                    result.append(m.toString());
-                });
-        System.out.printf("Result: " + result + ".\n");
+        System.out.printf("Result: " + (bestMoveForCol == null ? "null" : bestMoveForCol.toString()) + ".\n");
         assertNotNull(bestMoveForCol);
     }
 
@@ -235,8 +232,19 @@ public class ChessBoardTest {
         ,"8/8/2B3B1/8/8/8/2r5/8 b - - 0 1, c2c6"        // r flees and takes
         ,"8/5k2/2R3r1/3K4/8/8/6R1/8 b - - 0 1, g6g2"    // r needs to take the right (uncovered) R
         ,"5k2/8/3r2q1/8/1R6/P7/1P2r1R1/KN6 w - - 0 1, g2e2"      // take q and lose R? better take r (+#)
+        ,"k7/8/8/3p4/4P3/8/8/K7 w - - 0 1, e4d5"        // pawn takes pawn...
     })
     void ChessBoardGetBestMove_Basics_Test(String fen, String expectedBestMove) {
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true, true);
+    }
+
+    // choose the one best move in simple checking scenarios
+    @ParameterizedTest
+    @CsvSource({
+     "3k1R2/8/3K4/8/8/8/4r3/8 b - - 9 6, e2e8"  //  last possible move is to block check
+     , "6k1/2p2ppp/pnp5/B7/2P3PP/1P2PPR1/r3b2r/3R2K1 w - - 2 30, d1d8"   // mateIn1 - with special case that it needs to treat case where king itself is the only "block" for coverage at toPos of check-giving piece
+    })
+    void ChessBoardGetBestMove_CheckingBasics_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true, true);
     }
 
@@ -252,13 +260,25 @@ public class ChessBoardTest {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true, false);
     }
 
+    @Test
+    void getBestMovesForColAfter_alreadyMate_Test() {
+        doAndTestPuzzle("r2k3r/p1pp1ppp/8/8/3P4/N1P2b2/PP2qP1P/R3K3 w Q - 0 18", "", "too late it's mate", true, false);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "r2k3r/p1pp1ppp/q7/8/3P4/N1P2b2/PP2NP1P/R3K3 b Q - 0 17, a6e2"      // straight mateIn1 with q covered by b
+    })
+    void getBestMoves_MateIn1_Test(String fen, String expectedBestMove) {
+        doAndTestPuzzle(fen, expectedBestMove, "MateIn1-test", true, false);
+    }
 
     public static void doAndTestPuzzle(String fen, String expectedMoves, String themes, boolean debugmoves, boolean intenseDebugging) {
         //ChessBoard.DEBUGMSG_MOVEEVAL = debugmoves;
         ChessBoard.DEBUGMSG_MOVESELECTION = debugmoves;
         if (intenseDebugging)
             ChessBoard.DEBUGMSG_MOVESELECTION2 = true;
-        ChessBoard board = new ChessBoard(themes, fen, new ChessEngineParams(DEFAULT_TEST_ENGINE_LEVEL));
+        ChessBoard board = new ChessBoard(themes, fen);
         ChessBoard.setEngineP1(DEFAULT_TEST_ENGINE_LEVEL);
         String[] splitt = expectedMoves.trim().split(" ", 2);
         if (splitt.length==2 && splitt[1]!=null && splitt[1].length()>0) {
@@ -269,13 +289,15 @@ public class ChessBoardTest {
         else
             expectedMoves = splitt[0];
         // get calculated best move
-        System.out.print("Searching Best move for Board: " + board.getBoardName() + ": " + board.getBoardFEN() + " .  ");
+        System.out.println("Searching Best move for Board: " + board.getBoardName() + ": " + board.getBoardFEN() + " .  ");
         Move bestMove = board.getBestMove();
         ChessBoard.DEBUGMSG_MOVEEVAL = false;
         ChessBoard.DEBUGMSG_MOVESELECTION = false;
         ChessBoard.DEBUGMSG_MOVESELECTION2 = false;
 
-        if (bestMove==null) {
+        if (bestMove == null) {
+            if (expectedMoves.isEmpty())
+                return;  // passed, no move was expected to exist
             System.out.println("--> Failed on board " + board.getBoardName() + ": " + board.getBoardFEN() + ": No move?");
             assertEquals(Arrays.toString(expectedMoves.split("\\|")) , "" );
         }
