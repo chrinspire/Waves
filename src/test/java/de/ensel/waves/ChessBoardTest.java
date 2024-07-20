@@ -37,16 +37,18 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class ChessBoardTest {
     //public static ChessEngineParams testEngParams = new ChessEngineParams(LEVEL_TEST_MID);
-    static final int DEFAULT_TEST_ENGINE_LEVEL = LEVEL_TEST_MED; // LEVEL_TEST_QUICK-1; // LEVEL_TEST_MED;
+    static int DEFAULT_TEST_ENGINE_LEVEL = LEVEL_TEST_MED; // LEVEL_TEST_QUICK; // LEVEL_TEST_MED;
 
     // temporary/debug tests: choose the one best move
     @Disabled
     @ParameterizedTest
     @CsvSource({
-        //  "3qkbnr/p1pp1ppp/b3p3/2P5/1r1P4/4P3/P2B1PPP/RN2K1NR b KQk - 1 9, a1a1" // bug: ignore Q taking and checking on f7?
-        //"8/5k2/2R3r1/3K4/8/8/6R1/8 b - - 0 1, g6g2"
-        //Ok: "6k1/p4pbp/5n2/2pnp1N1/6P1/1rN2P2/7P/B2K3R w - - 0 37, g5e4|d1d2"
-        "6k1/p6p/8/5p1P/4p3/4P1P1/2R5/1r2K3 w - - 1 50, e1e2|e1f2"      // not c2c1...
+        //"rnbqkb1r/pppppppp/8/4N2n/3PP3/P1N4P/1PP2PP1/R1BQKB1R b KQkq - 2 7, h5f6|g7g6"
+        //"r1b1k2r/p2n1pp1/2p4p/1P2p3/1b5q/1P1PP2P/2PnPKPR/R2Q1B2 w kq - 0 14, g2g3|f2g1" // only two moves left
+        //, "r1b1kb1r/ppp1pppp/n2pq2n/1P6/2PP3N/P1N3P1/3B1PBP/R2Q1RK1 b kq - 0 13, a6b8"  // bug at level 5: NOT a1b8
+       // "rnbqkb1r/1p1p1ppp/p4p2/2pN4/2PP4/8/PP1BQPPP/R3KBNR b KQkq - 5 9, f8e7"
+    "1rbk1b1r/1ppR1Q1p/4n3/p3NNP1/2P5/P3P2P/1q3P2/4K1R1 b - - 0 30, a1a1"
+            , "5rnr/p1p2kpp/p4pb1/2NPN3/P2P4/1P2R3/5PPP/R5K1 b - - 5 25, f6e5" // last possible move
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true, true);
@@ -205,6 +207,24 @@ public class ChessBoardTest {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", false, false);
     }
 
+    // Level-0 tests - PRE evaluation quality
+    @ParameterizedTest
+    @CsvSource({
+            "3qkbnr/p1pp1ppp/b3p3/2P5/1r1P4/4P3/P2B1PPP/RN2K1NR b KQk - 1 9, d8g5|b4c4|b4a4|b4b2|b4b5|b4b7|b4b8" // d8g5 is best, but for pre-eval daving the rook is reasonable
+            , "8/5k2/2R3r1/3K4/8/8/6R1/8 b - - 0 1, g6g2"
+            , "6k1/p4pbp/5n2/2pnp1N1/6P1/1rN2P2/7P/B4K1R w - - 0 37, g5e4|c3d5"
+            , "6k1/p6p/8/5p1P/4p3/4P1P1/2R5/1r2K3 w - - 1 50, e1d2|e1f2"        // not c2c1... and maybe e1e2 is also ok for pre-eval
+            , "5k2/8/3r2q1/8/1R6/P7/1P2r1R1/KN6 w - - 0 1, g2e2"                // basicTest [6] take q and lose R? better take r (+#)
+            , "4k2r/6p1/5p1p/8/6n1/6PP/5P2/4K2R b K - 0 7, g4e5"                // save threatened n
+    })
+    void ChessBoardGetBestMove_isBestMovePREeval_Test(String fen, String expectedBestMove) {
+        int defaultLevel = DEFAULT_TEST_ENGINE_LEVEL;
+        DEFAULT_TEST_ENGINE_LEVEL = 0;
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true, true);
+        DEFAULT_TEST_ENGINE_LEVEL = defaultLevel;
+    }
+
+
     // choose the one best move in very simple scenarios
     @ParameterizedTest
     @CsvSource({
@@ -217,7 +237,7 @@ public class ChessBoardTest {
         ,"5k2/8/3r2q1/8/1R6/P7/1P2r1R1/KN6 w - - 0 1, g2e2"      // take q and lose R? better take r (+#)
     })
     void ChessBoardGetBestMove_Basics_Test(String fen, String expectedBestMove) {
-        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true, false);
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true, true);
     }
 
     // choose the one best move in simple scenarios, but with many pieces

@@ -300,6 +300,8 @@ public class VBoard implements VBoardInterface {
     }
 
     public ChessPiece getPinnerOfPceToPos(ChessPiece pinnedPce, int targetPos) {
+        if (isKing(pinnedPce.pieceType()))
+            return null;
         int pPos = getPiecePos(pinnedPce);
         ChessPiece pinner = null;
         // manually run along the board (going over generic moves2here would be to slow I think
@@ -308,7 +310,7 @@ public class VBoard implements VBoardInterface {
             return null;  // pin not possible in strange directions...
 
         int pos = targetPos;
-        // loop along the direction d until we hit something the pinnedPce - and then the searched for pinner
+        // loop along the direction d until we hit something: the pinnedPce - and then the searched for pinner
         while (plusDirIsStillLegal(pos, d)) {
             pos += d;
             if (!isSquareEmpty(pos)) {
@@ -323,7 +325,7 @@ public class VBoard implements VBoardInterface {
             pos += d;
             if (!isSquareEmpty(pos)) {
                 pinner = getPieceAt(pos);
-                if (!isSlidingPieceType(pinner.pieceType())
+                if (pinner.color() == pinnedPce.color() || !isSlidingPieceType(pinner.pieceType())
                         || !isCorrectSlidingPieceDirFromTo(pinner.pieceType(), pos, targetPos))
                     return null;    // pinner is not a piece that could pin here...
                 break;   // found!
@@ -391,7 +393,7 @@ public class VBoard implements VBoardInterface {
     }
 
     public Stream<Move> getLegalMovesStream(int color) {
-        return getPieces(color).flatMap(p -> p.legalMovesStreamAfter(this));
+        return getPieces(color).flatMap(this::getSingleMovesStreamFromPce);
     }
 
     //// setter
@@ -452,8 +454,8 @@ public class VBoard implements VBoardInterface {
                        ));
     }
 
-    public void calcSingleMovesSlidingOver(final Square toSq) {
-        firstMovesOverSq[toSq.pos()] = Stream.concat(toSq.depMovesOver[CIWHITE].stream(), toSq.depMovesOver[CIBLACK].stream())
+    public void calcSingleMovesSlidingOver(final Square overSq) {
+        firstMovesOverSq[overSq.pos()] = Stream.concat(overSq.depMovesOver[CIWHITE].stream(), overSq.depMovesOver[CIBLACK].stream())
                 .filter(move -> move.from() == getPiecePos(move.piece()))   // automatically filters out moves of captured pieces, as their pos is POS_UNSET
                 .toList();
     }

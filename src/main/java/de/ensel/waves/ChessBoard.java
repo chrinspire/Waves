@@ -43,10 +43,11 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
     public static boolean DEBUGMSG_CLASH_CALCULATION = false;
     public static boolean DEBUGMSG_MOVEEVAL = false;   // <-- best for checking why moves are evaluated the way they are
     public static boolean DEBUGMSG_MOVESELECTION = false || DEBUGMSG_MOVEEVAL;
-    public static boolean DEBUGMSG_MOVESELECTION2 = false || DEBUGMSG_MOVESELECTION;
+    public static boolean DEBUGMSG_MOVESELECTION2 = false && DEBUGMSG_MOVESELECTION;
     final public static int DEBUGMSG_MOVESELECTION2_MAXDEPTH = 2;
 
     public static boolean SHOW_REASONS = true;  // DEBUGMSG_MOVESELECTION;
+    public int countCalculatedBoards;
 
     public static int DEBUGFOCUS_SQ = coordinateString2Pos("e1");   // changeable globally, just for debug output and breakpoints+watches
     public static int DEBUGFOCUS_VP = 0;   // changeable globally, just for debug output and breakpoints+watches
@@ -68,7 +69,6 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
     protected Move bestMove;
 
     private boolean gameOver;
-
     private int repetitions;
 
     private Square[] boardSquares;
@@ -110,7 +110,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
         initChessBoard(new StringBuffer(boardName), fenBoard);
     }
 
-    @Deprecated  // becaus engParams is now always overridden by engineP1 before calculation
+    @Deprecated  // because engParams is now always overridden by engineP1 before calculation
     public ChessBoard(String boardName, String fenBoard, ChessEngineParams engParams) {
         this.engParams = engParams;
         initChessBoard(new StringBuffer(boardName), fenBoard);
@@ -225,8 +225,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
         int kingPos = kingPos(color);
         if (kingPos < 0)
             return 0;  // king does not exist... should not happen, but is part of some test-positions
-        Square kingSquare = getSquare(kingPos);
-        return kingSquare.countDirectAttacksWithout2ndRowWithColor(opponentColor(color));
+        return getSquare(kingPos).countDirectAttacksWithout2ndRowWithColor(opponentColor(color));
     }
 
     /////
@@ -1362,7 +1361,7 @@ public class ChessBoard extends VBoard {   // was implements VBoardInterface { b
                         && (fromFile == -1 || fileOf(p.pos()) == fromFile)       // no extra file is specified or it is correct
                         && (fromRank == -1 || rankOf(p.pos()) == fromRank)       // same for rank
                         && boardSquares[m.to()].canMoveHere(p.id())         // p can move here directly (distance==1)
-                        && moveIsNotBlockedByKingPin(p, m.to())                                         // p is not king-pinned or it is pinned but does not move out of the way.
+                        && !moveIsBlockedByKingPin(p, m.to())                                         // p is not king-pinned or it is pinned but does not move out of the way.
                 ) {
                     m.setFrom(p.pos());
                     break;

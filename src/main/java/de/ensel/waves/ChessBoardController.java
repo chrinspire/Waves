@@ -57,6 +57,7 @@ public class ChessBoardController implements ChessEngine {
                 board = new ChessBoard(chessBasicRes.getString("chessboard.initialName"), board.getBoardFEN());
             }
         }
+        System.err.println("CBC: Board " + board.getBoardFEN() + " set.");  //TODO: remove
     }
 
     @Override

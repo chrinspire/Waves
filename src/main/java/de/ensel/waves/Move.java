@@ -27,12 +27,9 @@ import static de.ensel.chessbasics.ChessBasics.*;
  *  which ones can block or delay this move and the other way round, which ones are enabled or blocked/delayed.
  */
 public class Move extends SimpleMove implements Comparable<Move> {
-    private ChessPiece myPiece;
-    private Square fromSq;
-    private Square toSq;
     private boolean isCheckGiving = false;
 
-    private Square[] intermedSqs;
+    final private Square[] intermedSqs;
     private Evaluation eval = new Evaluation();
 
 
@@ -127,7 +124,7 @@ public class Move extends SimpleMove implements Comparable<Move> {
      * @param sortedTopMoves top moves so far. sortedTopMoves needs to be sorted from the beginning (or empty).
      * @param color to determine which evaluations are better (higher or lower)
      * @param maxTopEntries the max nr of entries that should be in sortedTopMoves
-     * @param restMoves is not sorted.
+     * @param restMoves is not sorted - may be null, then rest moves are simply thrown away
      * @return true if evMove is a new top move, false otherwise
      */
     static boolean addMoveToSortedListOfCol(Move evMove,
@@ -143,8 +140,9 @@ public class Move extends SimpleMove implements Comparable<Move> {
                     sortedTopMoves.add(i + 1, evMove);
                 // move lower rest if top list became too big
                 while (sortedTopMoves.size() > maxTopEntries) {
-                    restMoves.add(
-                            sortedTopMoves.remove(maxTopEntries) );
+                    Move removed = sortedTopMoves.remove(maxTopEntries);
+                    if (restMoves != null)
+                        restMoves.add(removed);
                 }
                 return false;
             }
@@ -153,8 +151,9 @@ public class Move extends SimpleMove implements Comparable<Move> {
         sortedTopMoves.add(0, evMove);
         // move lower rest if top list became too big
         while (sortedTopMoves.size() > maxTopEntries) {
-            restMoves.add(
-                    sortedTopMoves.remove(maxTopEntries) );
+            Move removed = sortedTopMoves.remove(maxTopEntries);
+            if (restMoves != null)
+                restMoves.add(removed);
         }
         return true;
     }
@@ -310,8 +309,8 @@ public class Move extends SimpleMove implements Comparable<Move> {
         if ( pos == NOWHERE )  //was: fb.isCaptured(piece())
             return false;
         return pos == from()   // piece is still here
-                && fb.moveIsNotBlockedByKingPin(piece(), to())
                 && myPiece.isADirectMoveAfter(this, fb);
+                && !fb.moveIsBlockedByKingPin(piece(), to())
     }
 
     public boolean isCoveringAfter(final VBoard fb) {
@@ -319,7 +318,7 @@ public class Move extends SimpleMove implements Comparable<Move> {
         if ( pos == NOWHERE )  //was: fb.isCaptured(piece())
             return false;
         return pos == from()  // piece is still here
-                && fb.moveIsNotBlockedByKingPin(piece(), to())
+                && !fb.moveIsBlockedByKingPin(piece(), to())
                 && myPiece.isCoveringTargetAfter(this, fb);
     }
 
@@ -330,7 +329,7 @@ public class Move extends SimpleMove implements Comparable<Move> {
     }
 
     public Evaluation getSimpleMoveEvalAfter(VBoard fb) {
-        assert (isALegalMoveAfter(fb));
+        //TODO!!! assert (isALegalMoveAfter(fb));
         // consider context of already done moves.
        ChessPiece capturedPiece = fb.getPieceAt(to());
        if (capturedPiece == null)

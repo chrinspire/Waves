@@ -57,4 +57,9 @@ public class ChessPiecePawn extends ChessPiece {
             return fb.hasPieceOfColorAt(opponentColor(color()), toPos);  // pawn can only go there if it is a capture
     }
 
+    @Override
+    boolean coveringMoveToIsLegalAfter(Move move, VBoard fb) {
+        return movePossibleForPawnAfter(move.from(), move.to(), fb);
+    }
+
 }

@@ -99,7 +99,7 @@ public class SimpleMove {
 
     @Override
     public String toString() {
-        return ChessBasics.squareName( from)
+        return ChessBasics.squareName(from)
             // for debugging only    + (isBasicallyALegalMove() ? "" : "'")
                 + ChessBasics.squareName(to)
                 + ( promotesTo!=EMPTY  ? Character.toLowerCase(fenCharFromPceType(promotesTo)) : "");

@@ -51,9 +51,9 @@ public class UCI4ChessEngine {
     }
 
     void playOrNewBoard(String fen) {
-        if (engine==null)
+        if (engine == null)
             engine = new ChessBoardController();
-        if (engineParam1!=null)
+        if (engineParam1 != null)
             engine.setParam("engineP1", engineParam1.toString() );
         engine.setBoard(fen);
     }

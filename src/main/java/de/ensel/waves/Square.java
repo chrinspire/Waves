@@ -61,7 +61,7 @@ public class Square {
     }
 
     public int countDirectAttacksWithout2ndRowWithColor(int col) {
-        return 0; //TODO
+        return (int)(getSingleMovesToHere(col, board).count());
     }
 
     public List<ChessPiece> directAttackersWithout2ndRowWithColor(int col) {
@@ -241,7 +241,6 @@ public class Square {
      * @return Stream of all Moves of all pieces that can come here directly.
      */
     public Stream<Move> getSingleMovesToHere(final int color, final VBoard fb) {
-        // Todo: can be just one move, no? -> make it return Move
         return depMovesEnd[color].stream()
                 .filter(move -> move.from() == fb.getPiecePos(move.piece()));
     }

@@ -23,10 +23,10 @@ public record ChessEngineParams(String paramSetName, int searchMaxDepth, int sea
     public static final int LEVEL_LOW = 3;
     public static final int LEVEL_MID = 5;
     public static final int LEVEL_GOOD = 6;
-    public static final int LEVEL_HIGH = 7;
+    public static final int LEVEL_BETTER = 8;
     public static final int LEVEL_TEST_QUICK = 4;
     public static final int LEVEL_TEST_MED = 7;
-    public static final int LEVEL_TEST_LONG = 8;
+    public static final int LEVEL_TEST_LONG = 9;
 
     public static final int MAX_SEARCH_DEPTH = 12;
     public static final int LEVEL_DEFAULT = LEVEL_GOOD;
@@ -40,8 +40,9 @@ public record ChessEngineParams(String paramSetName, int searchMaxDepth, int sea
             new ChessEngineParams("mid", 6, 6),
             new ChessEngineParams("good", 8, 6),
             new ChessEngineParams("test-m", 10, 6),   // LEVEL_TEST_MID
+            new ChessEngineParams("better", 7, 12),
             new ChessEngineParams("test-max", MAX_SEARCH_DEPTH, 10),  // LEVEL_TEST_LONG
-            new ChessEngineParams("max/10", MAX_SEARCH_DEPTH, 10),
+            new ChessEngineParams("max/30", MAX_SEARCH_DEPTH, 20),
             new ChessEngineParams("max/100", MAX_SEARCH_DEPTH, 100),
     };
 
