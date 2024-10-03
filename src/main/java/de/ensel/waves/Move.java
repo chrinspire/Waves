@@ -347,6 +347,9 @@ public class Move extends SimpleMove implements Comparable<Move> {
         return postVBoard;
     }
 
+    public int getMinTempi() {
+        return minTempi;
+    }
 
     //// setter
 
@@ -355,9 +358,22 @@ public class Move extends SimpleMove implements Comparable<Move> {
         return this;
     }
 
+    public void setMinTempi(int minTempi) {
+        this.minTempi = minTempi;
+    }
+
+    public void minimizeMinTempi(int minTempi) {
+        this.minTempi = min(this.minTempi, minTempi);
+    }
+
     public void setPostVBoard(VBoard postVBoard) {
         this.postVBoard = postVBoard;
     }
+
+    public void setConsequences(MoveConsequences moveConseqs) {
+        this.conseqs = moveConseqs;
+    }
+
 
     @Override
     public int compareTo(Move other) {
@@ -372,8 +388,12 @@ public class Move extends SimpleMove implements Comparable<Move> {
     @Override
     public String toString() { // toDetailedString() {
         return piece().symbol()
+                + (minTempi == 0 || minTempi == Integer.MAX_VALUE ? (minTempi == 0 ? "" : "(?)") : "(in" + minTempi+")")
+                + (preCondMoves.isEmpty() ? "" : "{" + preCondMoves + "}")
                 + super.toString();
     }
 
+    public void addPreCond(Move move) {
+        preCondMoves.add(move);
+    }
 }
-
