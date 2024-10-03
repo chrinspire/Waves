@@ -20,11 +20,11 @@ package de.ensel.waves;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.waves.ChessBoard.DEBUGMSG_MOVEEVAL;
+import static de.ensel.waves.VBoard.seeminglyLegalMoveIsReallyLegalOnBoard;
 import static org.junit.jupiter.api.Assertions.*;
 
 class VBoardTest {
@@ -171,4 +171,188 @@ class VBoardTest {
         assertFalse(vBoard.hasLegalMoves(CIWHITE));
     }
 
+    @Test
+    void calcMoveConsequences_Test() {
+        ChessBoard board = new ChessBoard("3k4/1p6/8/8/1r2pK2/2R5/3N4/8 b - - 7 76");
+        Move firstMove = board.getPieceAt(coordinateString2Pos("e4"))
+                .getDirectMove(coordinateString2Pos("e3"));
+        VBoard vBoard = board.createNext(firstMove);
+        System.out.println( "" + firstMove.conseqs );
+
+        String enabled = Arrays.toString( firstMove.conseqs.getEnabledMoves()
+                .map(Move::toString).sorted().toArray() );
+        //System.out.println( "Enabled moves: " + enabled );
+        String blocked = Arrays.toString( firstMove.conseqs.getBlockedMoves()
+                .map(Move::toString).sorted().toArray() );
+        //System.out.println( "Blocked moves: " + blocked );
+        String changed = Arrays.toString( firstMove.conseqs.getChangedEvalMoves()
+                .map(Move::toString).sorted().toArray() );
+        //System.out.println( "Changed move consequences: " + changed );
+        
+        assertEquals("[b4e4, b4f4, e3d2, e3e2]", enabled);
+        assertEquals("[c3f3, c3g3, c3h3, e4d3, e4e3, e4f3]", blocked);
+        assertEquals("[c3e3, d2e4, f4e3, f4e4]", changed);
+    }
+    
+    @Test
+    void calcMoveConsequences_multiple_Test() {
+        ChessBoard board = new ChessBoard("3k4/1p6/8/8/1r2pK2/2R5/3N4/8 b - - 7 76");
+        Set<Move> enabledMoves = new HashSet<>();
+        for (int color = CIWHITE; color <= CIBLACK; color++) {
+            board.getLegalMovesStream(color)
+                    .filter(move -> seeminglyLegalMoveIsReallyLegalOnBoard(board, move))
+                    .forEach( move -> {
+                MoveConsequences.calcMoveConsequences(board, move);
+                System.out.println( "" + move +": " + move.conseqs );
+                enabledMoves.addAll(move.conseqs.getEnabledMoves(CIWHITE));
+                enabledMoves.addAll(move.conseqs.getEnabledMoves(CIBLACK));
+            });
+        }
+        System.out.println( "All enabled moves: " + enabledMoves );
+        assertEquals(203, enabledMoves.size());
+
+        Set<Move> enabledMoves2 = new HashSet<>();
+        for (Move move : enabledMoves) {
+            // move can now be non-legal (actually all, because they needed to be enabled by another move first...
+            MoveConsequences.calcMoveConsequences(board, move);
+            System.out.println( "    > " + move +": " + move.conseqs );
+            if (move.conseqs != null) {
+                enabledMoves2.addAll(move.conseqs.getEnabledMoves(CIWHITE));
+                enabledMoves2.addAll(move.conseqs.getEnabledMoves(CIBLACK));
+            }
+        }
+        System.out.println( "additionally enabled moves: " + enabledMoves2 );
+        assertEquals(620, enabledMoves2.size());
+
+        enabledMoves2.removeAll(enabledMoves);
+        System.out.println( "thereof new: " +  enabledMoves2.size() );
+        assertEquals(547, enabledMoves2.size());
+    }
+
+    @Test
+    void SPIKE_calcMoveConsequences() {
+        VBoard vBoard = new ChessBoard("8/8/8/8/8/Rp1r4/8/R7 b - - 7 76");
+        // 3 ░R░ p ░░░ r ░░
+        // 2    ░░░   ░░░
+        // 1 ░R░   ░░░   ░░
+        //... A  B  C  D  E
+        Set<Move> enabledMoves = new HashSet<>();
+        int turnCol = vBoard.getTurnCol();
+        int oppCol = opponentColor(turnCol);
+        ChessPiece mover = vBoard.getPieceAt(coordinateString2Pos("b3"));
+        for (int color = CIWHITE; color <= CIBLACK; color++) {
+                vBoard.getLegalMovesStream(color)
+                    .filter(move -> seeminglyLegalMoveIsReallyLegalOnBoard(vBoard, move))
+                    .forEach( move -> {
+                MoveConsequences.calcMoveFullConseq(vBoard, move);
+                System.out.println( "" + move +": " + move.conseqs );
+                        enabledMoves.addAll(move.conseqs.getEnabledMoves(CIWHITE));
+                        enabledMoves.addAll(move.conseqs.getEnabledMoves(CIBLACK));
+            });
+        }
+        System.out.println( "All enabled moves: " + enabledMoves );
+        assertEquals(203, enabledMoves.size());
+
+        Set<Move> enabledMoves2 = new HashSet<>();
+        for (Move move : enabledMoves) {
+            // move can now be non-legal (actually all, because they needed to be enabled by another move first...
+            MoveConsequences.calcMoveFullConseq(vBoard, move);
+            System.out.println( "    > " + move +": " + move.conseqs );
+            if (move.conseqs != null) {
+                enabledMoves2.addAll(move.conseqs.getEnabledMoves(CIWHITE));
+                enabledMoves2.addAll(move.conseqs.getEnabledMoves(CIBLACK));
+            }
+        }
+        System.out.println( "additionally enabled moves: " + enabledMoves2 );
+        assertEquals(620, enabledMoves2.size());
+
+        enabledMoves2.removeAll(enabledMoves);
+        System.out.println( "thereof new: " +  enabledMoves2.size() );
+        assertEquals(547, enabledMoves2.size());
+    }
+
+    @Test
+    void SPIKE_calcMoveMinTempi() {
+        VBoard vBoard = new ChessBoard("8/8/8/8/8/Rp1r4/8/R7 b - - 7 76");
+        // 3 ░R░ p ░░░ r ░░
+        // 2    ░░░   ░░░
+        // 1 ░R░   ░░░   ░░
+        //... A  B  C  D  E
+        final Set<Move>[] interestingMoves  = (Set<Move>[])new Set<?>[]{new HashSet<>(), new HashSet<>()};   // moves that are made legal or covering
+        final Set<Move>[] potentialMoves  = (Set<Move>[])new Set<?>[]{new HashSet<>(), new HashSet<>()};   // moves that are made legal or covering
+        final Set<Move>[] blockedMoves  = (Set<Move>[])new Set<?>[]{new HashSet<>(), new HashSet<>()};   // moves that are made legal or covering
+        int turnCol = vBoard.getTurnCol();
+        int oppCol = opponentColor(turnCol);
+        ChessPiece mover = vBoard.getPieceAt(coordinateString2Pos("b3"));
+        int minTempi = 0;
+
+        // prefill sets with what is possible on board now (pretend opponent moves are "legal")
+        retrievePotentialAndInterestingLegalMoves(vBoard,
+                turnCol, 0, potentialMoves[turnCol], interestingMoves[turnCol]);
+        retrievePotentialAndInterestingLegalMoves(vBoard,
+                oppCol, 1, potentialMoves[oppCol], interestingMoves[oppCol]);
+        //assertEquals(620, enabledMoves2.size());
+
+        retrievePotentialAndInterestingFollowUpMoves(vBoard,
+                turnCol, 2, potentialMoves, interestingMoves, blockedMoves);
+        //Bug: pb3b2: MoveConsequences{ white: ... preparedMoves=[..., Rb1b4, Rb1b8,
+        retrievePotentialAndInterestingFollowUpMoves(vBoard,
+                oppCol, 3, potentialMoves, interestingMoves, blockedMoves);
+        //assertEquals(547, enabledMoves2.size());
+    }
+
+    /**
+     * used at current board to collect the first moves (which must be legal ones).
+     * Both sets are for turnCol only and should be empty when called.
+     * @param vBoard - the current board
+     * @param turnCol - whos turn it is
+     * @param potentialMoves - filled with all legal moves for [turnCol] except interesting moves
+     * @param interestingMoves  - filled with legal moves for [turnCol] that look interesting (like capture or check)
+     */
+    private static void retrievePotentialAndInterestingLegalMoves(VBoard vBoard, int turnCol, int minTempi, Set<Move> potentialMoves, Set<Move> interestingMoves) {
+        int oppCol = opponentColor(turnCol);
+        boolean[] firstRound = { false };
+        vBoard.getLegalMovesStream(turnCol)
+                .filter(move -> seeminglyLegalMoveIsReallyLegalOnBoard(vBoard, move)) // at level 0+1 (first move for turnCOl and opponent) we only take really legal moves
+                .forEach( move -> {
+                    move.setMinTempi(minTempi);
+                    //MoveConsequences.calcMoveFullConseq(vBoard, move);
+                    System.out.println( "A. " + move +": " + move.conseqs );
+                    if (/*minTempi == 0 ||*/ MoveConsequences.isInteresting(vBoard, move) )
+                        interestingMoves.add(move);
+                    else
+                        potentialMoves.add(move);
+                });
+        System.out.println( "Interesting first moves: " + interestingMoves
+                            + " All other potential moves: " + potentialMoves );
+    }
+
+    /**
+     * used at current board for the first moves (which must be legal ones).
+     * All three sets are double (so per color) and should be empty when called.
+     * @param vBoard - the current board
+     * @param turnCol - whos turn it is
+     * @param potentialMoves - filled with all legal moves for [turnCol] except interesting moves
+     * @param interestingMoves  - filled with legal moves for [turnCol] that look interesting (like capture or check)
+     * @param blockedMoves - filled for [opponent color] with opponent's moves which are blocked by all my moves (should unually/mainly be empty)
+     */
+    private static void retrievePotentialAndInterestingFollowUpMoves(VBoard vBoard, int turnCol, int minTempi, Set<Move>[] potentialMoves, Set<Move>[] interestingMoves, Set<Move>[] blockedMoves) {
+        int oppCol = opponentColor(turnCol);
+        boolean[] firstRound = {false};
+        final Set<Move>[] moreInterestingMoves = (Set<Move>[])new Set<?>[]{new HashSet<Move>(), new HashSet<Move>()};
+
+        for (Move move : interestingMoves[turnCol]) {
+            // note: move is probably non-legal (actually all but tempo==0, because they needed to be enabled by another move first...
+            MoveConsequences.calcMoveFullConseq(vBoard, move);
+            System.out.println( "    > " + move +": " + move.conseqs );
+            if (move.conseqs != null) {
+                moreInterestingMoves[CIWHITE].addAll(move.conseqs.getInterestingMoves(CIWHITE));
+                moreInterestingMoves[CIBLACK].addAll(move.conseqs.getInterestingMoves(CIBLACK));
+            }
+        }
+        System.out.println("All enabled moves: turnCol: " + potentialMoves[turnCol]
+                + "; oppCol: " + potentialMoves[oppCol]);
+        System.out.println("In any way blocked moves: turnCol: " + blockedMoves[turnCol]
+                + "; oppCol: " + blockedMoves[oppCol]);
+    }
 }

@@ -25,6 +25,7 @@ import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.waves.Move.addMoveToSortedListOfCol;
 import static de.ensel.waves.VBoardInterface.GameState.*;
 import static java.lang.Math.abs;
+import static java.lang.Math.max;
 
 public class VBoard implements VBoardInterface {
     public static final int NO_PIECE_ID = -1;  //todo: why not using EMPTY from ChessBasics piece types?
@@ -202,6 +203,8 @@ public class VBoard implements VBoardInterface {
             baseBoard.getSquare(kingPos)
                 .getSingleMovesToHere(checkingMoveColor, this)
                 .forEach(this::addCheckingMove);
+
+        move.setConsequences( MoveConsequences.calcMoveConsequences(preBoard, move, this) );
         return true;
     }
 
@@ -212,7 +215,7 @@ public class VBoard implements VBoardInterface {
      * @param move
      * @return true if a seemingly Legal Move (which my not be king pinned) Is Really Legal On Board now
      */
-    private static boolean seeminglyLegalMoveIsReallyLegalOnBoard(VBoard preBoard, Move move) {
+    static boolean seeminglyLegalMoveIsReallyLegalOnBoard(VBoard preBoard, Move move) {
         int color = move.piece().color();
         if (isKing(move.piece().pieceType())) {
             if (preBoard.posIsCoveredBy(move.to(), opponentColor(color)))
