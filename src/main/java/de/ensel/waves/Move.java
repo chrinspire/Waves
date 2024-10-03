@@ -18,9 +18,12 @@
 
 package de.ensel.waves;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static de.ensel.chessbasics.ChessBasics.*;
+import static java.lang.Math.min;
 
 /** Complex representation of a Chess moves of a certain piece from a square position to another one position.
  *  Store and handles conditions, obstacles and consequences: i.e. which other moves are required to enable this move,
@@ -34,6 +37,10 @@ public class Move extends SimpleMove implements Comparable<Move> {
     final private Square[] intermedSqs;
     private Evaluation eval;
     private VBoard postVBoard;
+
+    MoveConsequences conseqs = null;
+    private int minTempi = Integer.MAX_VALUE;
+    private Set<Move> preCondMoves = new HashSet<>();
 
 
     //// Constructors
