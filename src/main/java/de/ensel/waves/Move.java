@@ -265,37 +265,6 @@ public class Move extends SimpleMove implements Comparable<Move> {
         return eval.getEvalAt(0);
     }
 
-
-    //// getter
-
-    public Evaluation getEval() {
-        return eval;
-    }
-
-    public ChessPiece piece() {
-        return myPiece;
-    }
-
-    public Square fromSq() {
-        return fromSq;
-    }
-
-    public Square toSq() {
-        return toSq;
-    }
-
-    public Square[] intermedSqs() {
-        return intermedSqs;
-    }
-
-
-    //// setter
-
-    public Move setEval(final Evaluation eval) {
-        this.eval = eval;
-        return this;
-    }
-
     public boolean isALegalMoveNow() {
         return isALegalMoveAfter(piece().board());
     }
@@ -327,20 +296,10 @@ public class Move extends SimpleMove implements Comparable<Move> {
     public Evaluation getSimpleMoveEvalAfter(VBoard fb) {
         //TODO!!! assert (isALegalMoveAfter(fb));
         // consider context of already done moves.
-       ChessPiece capturedPiece = fb.getPieceAt(to());
-       if (capturedPiece == null)
-           return new Evaluation();
-       return new Evaluation(-capturedPiece.getValue(), 0);  // fb.futureLevel());
-    }
-
-    @Override
-    public int compareTo(Move other) {
-        //return Integer.compare(this.eval.getScore(), other.eval.getScore());
-        if ( isBetterForColorThan(piece().color(), other) )
-            return 1;
-        if ( other.isBetterForColorThan(piece().color(), this) )
-            return -1;
-        return 0;
+        ChessPiece capturedPiece = fb.getPieceAt(to());
+        if (capturedPiece == null)
+            return new Evaluation();
+        return new Evaluation(-capturedPiece.getValue(), 0);  // fb.futureLevel());
     }
 
     public boolean mates() {
@@ -353,12 +312,82 @@ public class Move extends SimpleMove implements Comparable<Move> {
         return isBetweenFromAndTo(to(), fb.kingPos(piece().color()), fb.getCheckingMoves(checkerColor).get(0).from());
     }
 
-    public void setPostVBoard(VBoard postVBoard) {
-        this.postVBoard = postVBoard;
+
+
+    //// getter
+
+    public Evaluation getEval() {
+        return eval;
+    }
+
+    public ChessPiece piece() {
+        return myPiece;
+    }
+
+    public Square fromSq() {
+        return fromSq;
+    }
+
+    public Square toSq() {
+        return toSq;
+    }
+
+    public Square[] intermedSqs() {
+        return intermedSqs;
     }
 
     public VBoard getPostVBoard() {
         return postVBoard;
+    }
+
+    public int getMinTempi() {
+        return minTempi;
+    }
+
+    //// setter
+
+    public Move setEval(final Evaluation eval) {
+        this.eval = eval;
+        return this;
+    }
+
+    public void setMinTempi(int minTempi) {
+        this.minTempi = minTempi;
+    }
+
+    public void minimizeMinTempi(int minTempi) {
+        this.minTempi = min(this.minTempi, minTempi);
+    }
+
+    public void setPostVBoard(VBoard postVBoard) {
+        this.postVBoard = postVBoard;
+    }
+
+    public void setConsequences(MoveConsequences moveConseqs) {
+        this.conseqs = moveConseqs;
+    }
+
+
+    @Override
+    public int compareTo(Move other) {
+        //return Integer.compare(this.eval.getScore(), other.eval.getScore());
+        if ( isBetterForColorThan(piece().color(), other) )
+            return 1;
+        if ( other.isBetterForColorThan(piece().color(), this) )
+            return -1;
+        return 0;
+    }
+
+    @Override
+    public String toString() { // toDetailedString() {
+        return piece().symbol()
+                + (minTempi == 0 || minTempi == Integer.MAX_VALUE ? (minTempi == 0 ? "" : "(?)") : "(in" + minTempi+")")
+                + (preCondMoves.isEmpty() ? "" : "{" + preCondMoves + "}")
+                + super.toString();
+    }
+
+    public void addPreCond(Move move) {
+        preCondMoves.add(move);
     }
 }
 

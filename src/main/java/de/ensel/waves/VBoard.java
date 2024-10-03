@@ -94,6 +94,16 @@ public class VBoard implements VBoardInterface {
         // this.moves = preBoard.moves;
     }
 
+    @Override
+    public int getSlidingDelay(int[] nrOfBlockers, Move slidingMove, int turnCol) {
+        final int slidingMoverCol = slidingMove.piece().color();
+        return (getPiecePos(slidingMove.piece()) == slidingMove.from() ? 0 : 2)
+                + (nrOfBlockers[opponentColor(slidingMoverCol)] << 1)       // opponents need to move away (fastest possible: every 2nd ply one opponent)
+                + (max(0, nrOfBlockers[slidingMoverCol] - nrOfBlockers[opponentColor(slidingMoverCol)]) << 1)  // same color can move away in between opponents, unless it has more own pieces in the way
+                - 2                                                         // the two lines above count 2 to many, because of the piece moving away
+                + (turnCol == slidingMoverCol ? 2 : 1);                     // opponent could slide directly after, but I myself have to wait until after opponents ply in any case
+    }
+
     public void copyMoveCacheAndCheckerFrom(VBoard other) {
         // the cache content is actually fully valid here and even safe and not in conflict when the other.cache-arrays get exchanged
         firstMovesOverSq  = Arrays.copyOf(other.firstMovesOverSq, other.firstMovesOverSq.length);
@@ -487,6 +497,36 @@ public class VBoard implements VBoardInterface {
         }
         // nothing changed here
         return baseBoard.isSquareEmpty(pos);
+    }
+
+    /** counts pieces in the way from fromPos to toPos (both excl, so it can be used for a sliding move)
+     * Only to be used for sliding moves that would be valid on an empty beard.
+     * @return number of pieces in the way per color [white, black]
+     */
+    private int[] countBlockerBetweenExcept(int fromExcl, int toExcl, ChessPiece exceptPce) {
+        int dir = calcDirFromTo(fromExcl, toExcl);
+        assert (dir!=NONE);
+        int[] count = new int[]{0,0};
+        for (int p=fromExcl+dir; p != toExcl; p+=dir) {
+            ChessPiece blocker = getPieceAt(p);
+            if (blocker != null && blocker != exceptPce)
+                count[blocker.color()]++;
+        }
+        return count;
+    }
+
+    /** counts pieces in the way from fromPos to toPos (both excl, so it can be used for a sliding move)
+     * Only to be used for sliding moves that would be valid on an empty beard.
+     * @return number of pieces in the way per color [white, black]
+     */
+    @Override
+    public int[] countBlockerForMove(Move move) {
+        int[] count = countBlockerBetweenExcept(move.from(), move.to(), move.piece());
+        ChessPiece blocker = getPieceAt(move.to());
+        if (blocker != null && blocker != move.piece()
+                && blocker.color() == move.piece().color())  // a same colored piece is in the way at the end position
+            count[move.piece().color()]++;
+        return count;
     }
 
     @Override

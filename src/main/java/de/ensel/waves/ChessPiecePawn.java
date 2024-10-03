@@ -18,6 +18,8 @@
 
 package de.ensel.waves;
 
+import java.util.stream.Stream;
+
 import static de.ensel.chessbasics.ChessBasics.*;
 
 public class ChessPiecePawn extends ChessPiece {
@@ -50,15 +52,34 @@ public class ChessPiecePawn extends ChessPiece {
 //    }
 
     private boolean movePossibleForPawnAfter(int fromPos, int toPos, VBoard fb) {
+        return pawnmoveOnPiecePossible(fromPos, toPos, fb.getPieceAt(toPos));
+    }
+
+    /** checks pawn mobility to a square - considering it will be capturing or moving straight.
+     *
+     * @param fromPos
+     * @param toPos
+     * @param pceAtTo ChessPiece at toPos or null for empty.
+     * @return if pawn can go from fromPos to toPos assuming piece pceAtTo - which can be null for no piece - is at the toPos.
+     */
+    public boolean pawnmoveOnPiecePossible(int fromPos, int toPos, ChessPiece pceAtTo) {
+        //TODO? could in a even more general form (w pawn color but w/o ChessPiece, but type) be moved to ChessBasics
         if (onSameFile(fromPos, toPos))
-            return fb.isSquareEmpty(toPos);      // pawn can only go there if square is empty
+            return pceAtTo == null;      // pawn can only go there if square is empty
         else
-            return fb.hasPieceOfColorAt(opponentColor(color()), toPos);  // pawn can only go there if it is a capture
+            return pceAtTo != null && pceAtTo.color() == opponentColor(color());  // pawn can only go there if it is a capture
     }
 
     @Override
     boolean coveringMoveToIsLegalAfter(Move move, VBoard fb) {
         return movePossibleForPawnAfter(move.from(), move.to(), fb);
+    }
+
+    @Override
+    Stream<Move> allMovesFrom(int fromPos) {
+        if (!canPawnOfColorReachPos(color(), pos(), fromPos))
+            return Stream.empty();
+        return super.allMovesFrom(fromPos);
     }
 
 }

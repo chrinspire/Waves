@@ -50,7 +50,7 @@ public class MovesCollection extends AbstractCollection<Move> {
      * @return
      */
     public boolean add(Move m) {
-        Move old = moves.put(m.to(),m);
+        Move old = moves.put(m.to(), m);
         return m != old;
     }
 

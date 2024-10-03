@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static de.ensel.chessbasics.ChessBasics.chessBasicRes;
-import static de.ensel.chessbasics.ChessBasics.opponentColor;
 
 /**
  * VBoard virtually represents a ChessBoard. Like a Chessboard, it provides methods to 
@@ -39,8 +38,8 @@ public interface VBoardInterface {
     //// game & board
     GameState   gameState       ();
     boolean     isCheck         ();
-    List<Move> getCheckingMoves(int color);
-    void addCheckingMove(Move m);
+    List<Move>  getCheckingMoves(int color);
+    void        addCheckingMove (Move m);
 
     int         getTurnCol      ();
     boolean     hasLegalMoves   (int color);
@@ -49,6 +48,9 @@ public interface VBoardInterface {
 
     //// squares & pieces
     boolean     isSquareEmpty   (int pos);
+    //int[]       countBlockerBetween(int fromExcl, int toExcl);
+    int[]       countBlockerForMove(Move move);
+    int         getSlidingDelay (int[] nrOfBlockers, Move slidingMove, int turnCol);
     boolean     hasPieceOfColorAt(int color, int pos);
     Stream<ChessPiece> getPieces();
     Stream<ChessPiece> getPieces(int color);

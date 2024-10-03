@@ -38,7 +38,8 @@ public class ChessPiece {
     private final int myPceID;
     private int myPos;
 
-    MovesCollection[] moves;    //todo: make private and add raw-getter fpr usage in VBoard
+    MovesCollection[] moves;   // all theoretically (i.e. on empty board) possible moves for this piece from square [fromPos]
+    // todo: make private and add raw-getter fpr usage in VBoard
 
     //// constructors + factory
 
@@ -176,7 +177,7 @@ public class ChessPiece {
 
     /** generates a new evaluated move
      * @param move2Bevaluated the basic move or any other already evaluated move
-     * @param fb future board as VBoardInterface
+     * @param fb "future board" as VBoardInterface, but here _before_ move2Bevaluated
      * @return a new evaluated Move
      */
     public Move evaluateMoveAfter(Move move2Bevaluated, VBoard fb) {
@@ -262,7 +263,7 @@ public class ChessPiece {
         fbAfter.getSingleMovesStreamSlidingOver(fromSq)
                 .filter(move -> move.piece() != move2Bevaluated.piece()
                                 && move.to() != move2Bevaluated.to()  // these cases were covered in a) already
-                                && move.isCoveringAfter(fb))
+                                && move.isCoveringAfter(fbAfter))
                 .forEach(move -> {
                             adaptEvalForEnabledMove("enabling", move, eval, fb, fbAfter);
                             if (move.piece().color() != color())
@@ -680,7 +681,7 @@ public class ChessPiece {
         //Todo? could even go 1 step further with a "bestOld2ndFollowUpMove" in fl=2, but this first needs cached results there at the piece for fb
     }
 
-    /** gets the 2 best follop moves that have not already been reachable from oldFromPos
+    /** gets the 2 best follow-up moves that have not already been reachable from oldFromPos
      * @param move the move leading to the board as it is now
      * @param preBoard the board before, matching oldPos
      * @return List of max 2 moves - not including "capturing the king"
@@ -861,6 +862,10 @@ public class ChessPiece {
 
     private Stream<Move> allMoves() {
         return moves[pos()].stream();
+    }
+
+    Stream<Move> allMovesFrom(int fromPos) {
+        return moves[fromPos].stream();
     }
 
 

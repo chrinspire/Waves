@@ -244,19 +244,23 @@ public class Square {
                 .filter(move -> move.isALegalMoveAfter(fb));   // not needed, is part of isALegal...: move -> move.from() == fb.getPiecePos(move.piece())
     }
 
-    //    /**
-//     * ! result is no copy, keep unmodified
-//     * @return List of Moves of all pieces that could slide over this square.
-//     */
-//    public List<Move> getMovesSlidingOver() {
-//        return depMovesOver;
-//    }
-//
-//    /**
-//     * ! result is no copy, keep unmodified
-//     * @return List of Moves of all pieces that could start from here.
-//     */
-//    public List<Move> getMovesFromHere() {
-//        return depMovesStart;
-//    }
+    /**
+     * ! result is no copy, keep unmodified
+     * @return Stream of Moves of all pieces that could slide over this square.
+     */
+    public Stream<Move> getMovesSlidingOver() {
+        return Stream.concat(getMovesSlidingOver(CIWHITE), getMovesSlidingOver(CIBLACK));
+    }
+
+    public Stream<Move> getMovesSlidingOver(int color) {
+        return depMovesOver[color].stream();
+    }
+
+    /**
+     * ! result is no copy, keep unmodified
+     * @return Stream of Moves of all pieces that could start from here.
+     */
+    public Stream<Move> getMovesFromHere(int color) {
+        return depMovesStart[color].stream();
+    }
 }
