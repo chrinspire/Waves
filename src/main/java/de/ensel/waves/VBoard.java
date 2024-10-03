@@ -25,6 +25,7 @@ import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.waves.Move.addMoveToSortedListOfCol;
 import static de.ensel.waves.VBoardInterface.GameState.*;
 import static java.lang.Math.abs;
+import static java.lang.Math.max;
 
 public class VBoard implements VBoardInterface {
     public static final int NO_PIECE_ID = -1;  //todo: why not using EMPTY from ChessBasics piece types?
